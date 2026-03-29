@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Skeleton } from '../components/ui/Skeleton';
+import { getCategoryLabel } from '../content/categories';
 import { fetchArticle } from '../services/articles';
 import type { ArticleDetail } from '../types/api';
 
@@ -104,7 +105,10 @@ export function ArticlePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             >
-              <h1 className="font-display text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-4xl">
+              <p className="text-xs font-medium text-accent">
+                {getCategoryLabel(article.categoryId)}
+              </p>
+              <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-4xl">
                 {article.title}
               </h1>
               <time

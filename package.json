@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "openapi:sync": "node scripts/openapi-sync.mjs"
+    "openapi:sync": "node scripts/openapi-sync.mjs",
+    "article:new": "node scripts/new-article.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",

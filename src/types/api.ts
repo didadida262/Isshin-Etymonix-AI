@@ -8,6 +8,8 @@ export type Profile = {
 
 export type ArticleSummary = {
   id: string;
+  /** 与 `src/content/article-categories.json` 中的 id 对应 */
+  categoryId: string;
   title: string;
   excerpt: string;
   publishedAt: string;
