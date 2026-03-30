@@ -3,6 +3,7 @@ import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { motion } from 'framer-motion';
 import type { Profile } from '../types/api';
+import { CategoriesTextLink } from './CategoriesTextLink';
 import { Skeleton } from './ui/Skeleton';
 
 function ProfileSkeleton() {
@@ -92,6 +93,9 @@ export function ProfilePanel(props: {
             {profile.name}
           </h1>
           <p className="mt-1 text-sm text-muted">{profile.title}</p>
+          <div className="mt-3 flex justify-center md:justify-start">
+            <CategoriesTextLink to="/categories">Categories</CategoriesTextLink>
+          </div>
         </div>
       </div>
       <p className="text-center text-sm leading-relaxed text-muted md:text-left">
