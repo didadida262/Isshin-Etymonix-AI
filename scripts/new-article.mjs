@@ -175,7 +175,7 @@ if (resolved) {
 
 mkdirSync(articlesDir, { recursive: true });
 const id = randomUUID();
-const fileBase = `${todayISO()}-${slugify(title)}`;
+const fileBase = slugify(title);
 let finalPath = join(articlesDir, `${fileBase}.md`);
 let n = 0;
 while (existsSync(finalPath)) {
