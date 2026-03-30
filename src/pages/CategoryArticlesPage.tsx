@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArticleList } from '../components/ArticleList';
 import { CategoriesTextLink } from '../components/CategoriesTextLink';
@@ -6,43 +6,21 @@ import {
   ARTICLE_CATEGORIES,
   getCategoryLabel,
 } from '../content/categories';
-import { mapErrorMessage } from '../lib/errors';
-import { fetchArticles } from '../services/articles';
-import type { ArticleSummary } from '../types/api';
+import { getArticleSummaries } from '../content/loadArticles';
 
 export function CategoryArticlesPage() {
   const { categoryId } = useParams<{ categoryId: string }>();
-  const [articles, setArticles] = useState<ArticleSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const valid =
     categoryId &&
     ARTICLE_CATEGORIES.some((c) => c.id === categoryId);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchArticles();
-      setArticles(data);
-    } catch (e) {
-      setError(mapErrorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
   const filtered = useMemo(() => {
     if (!categoryId || !valid) return [];
-    return articles.filter(
+    return getArticleSummaries().filter(
       (a) => (a.categoryId || 'notes') === categoryId,
     );
-  }, [articles, categoryId, valid]);
+  }, [categoryId, valid]);
 
   if (!categoryId) {
     return null;
@@ -85,9 +63,8 @@ export function CategoryArticlesPage() {
       </p>
       <ArticleList
         articles={filtered}
-        loading={loading}
-        error={error}
-        onRetry={load}
+        loading={false}
+        error={null}
         grouped={false}
       />
     </>

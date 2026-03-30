@@ -109,7 +109,7 @@ export function ArticleList(props: {
   articles: ArticleSummary[];
   loading: boolean;
   error: string | null;
-  onRetry: () => void;
+  onRetry?: () => void;
   /** 为 false 时不显示类别分组标题，适合单类别列表页 */
   grouped?: boolean;
 }) {
@@ -132,13 +132,15 @@ export function ArticleList(props: {
         role="alert"
       >
         <p className="text-sm text-red-200 dark:text-red-300">{error}</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="mt-4 rounded-full border border-border px-5 py-2 text-sm transition hover:border-accent/50 hover:text-accent"
-        >
-          重试
-        </button>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-4 rounded-full border border-border px-5 py-2 text-sm transition hover:border-accent/50 hover:text-accent"
+          >
+            重试
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -146,7 +148,7 @@ export function ArticleList(props: {
   if (articles.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
-        暂无文章。接口返回空列表时会显示此状态。
+        暂无文章。
       </div>
     );
   }

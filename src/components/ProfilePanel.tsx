@@ -85,7 +85,7 @@ export function ProfilePanel(props: {
               loading="lazy"
             />
           ) : (
-            profile.name.slice(0, 1).toUpperCase()
+            (profile.name?.slice(0, 1) ?? '?').toUpperCase()
           )}
         </div>
         <div className="text-center md:text-left">

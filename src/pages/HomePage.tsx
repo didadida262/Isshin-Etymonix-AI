@@ -1,30 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { ArticleList } from '../components/ArticleList';
-import { mapErrorMessage } from '../lib/errors';
-import { fetchArticles } from '../services/articles';
-import type { ArticleSummary } from '../types/api';
+import { getArticleSummaries } from '../content/loadArticles';
 
 export function HomePage() {
-  const [articles, setArticles] = useState<ArticleSummary[]>([]);
-  const [articlesLoading, setArticlesLoading] = useState(true);
-  const [articlesError, setArticlesError] = useState<string | null>(null);
-
-  const loadArticles = useCallback(async () => {
-    setArticlesLoading(true);
-    setArticlesError(null);
-    try {
-      const data = await fetchArticles();
-      setArticles(data);
-    } catch (e) {
-      setArticlesError(mapErrorMessage(e));
-    } finally {
-      setArticlesLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadArticles();
-  }, [loadArticles]);
+  const articles = useMemo(() => getArticleSummaries(), []);
 
   return (
     <>
@@ -36,9 +15,8 @@ export function HomePage() {
       </header>
       <ArticleList
         articles={articles}
-        loading={articlesLoading}
-        error={articlesError}
-        onRetry={loadArticles}
+        loading={false}
+        error={null}
         grouped={false}
       />
     </>

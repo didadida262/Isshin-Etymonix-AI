@@ -3,12 +3,4 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    proxy: {
-      '/api': {
-        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    },
-  },
 });

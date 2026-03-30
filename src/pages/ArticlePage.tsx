@@ -1,29 +1,10 @@
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { motion } from 'framer-motion';
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Skeleton } from '../components/ui/Skeleton';
 import { getCategoryLabel } from '../content/categories';
-import { fetchArticle } from '../services/articles';
-import type { ArticleDetail } from '../types/api';
-
-function ArticleSkeleton() {
-  return (
-    <article className="space-y-6" aria-busy aria-label="加载文章">
-      <Skeleton className="h-4 w-32" />
-      <Skeleton className="h-10 w-4/5 max-w-xl" />
-      <Skeleton className="h-3 w-40" />
-      <div className="space-y-3 pt-4">
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-[92%]" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-4/5" />
-      </div>
-    </article>
-  );
-}
+import { getArticleById } from '../content/loadArticles';
 
 function ArticleBody({ text }: { text: string }) {
   const blocks = text.split(/\n\n+/).filter(Boolean);
@@ -36,39 +17,13 @@ function ArticleBody({ text }: { text: string }) {
   );
 }
 
-function mapError(err: unknown): string {
-  if (err && typeof err === 'object' && 'message' in err) {
-    const m = String((err as { message?: string }).message);
-    if (m === 'NOT_FOUND') return '未找到该文章。';
-    return m || '加载失败';
-  }
-  return '加载失败';
-}
-
 export function ArticlePage() {
   const { id } = useParams<{ id: string }>();
-  const [article, setArticle] = useState<ArticleDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchArticle(id);
-      setArticle(data);
-    } catch (e) {
-      setArticle(null);
-      setError(mapError(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const article = useMemo(
+    () => (id ? getArticleById(id) : undefined),
+    [id],
+  );
 
   return (
     <>
@@ -81,23 +36,22 @@ export function ArticlePage() {
       </Link>
 
       <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-border bg-surface-elevated/50 p-6 backdrop-blur-md md:mt-10 md:p-10">
-        {loading && <ArticleSkeleton />}
-        {!loading && error && (
+        {!id || !article ? (
           <div
             className="rounded-2xl border border-red-500/30 bg-red-500/5 p-8 text-center"
             role="alert"
           >
-            <p className="text-sm text-red-200 dark:text-red-300">{error}</p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="mt-4 rounded-full border border-border px-5 py-2 text-sm transition hover:border-accent/50 hover:text-accent"
+            <p className="text-sm text-red-200 dark:text-red-300">
+              {!id ? '无效链接。' : '未找到该文章。'}
+            </p>
+            <Link
+              to="/"
+              className="mt-4 inline-block rounded-full border border-border px-5 py-2 text-sm transition hover:border-accent/50 hover:text-accent"
             >
-              重试
-            </button>
+              返回首页
+            </Link>
           </div>
-        )}
-        {!loading && !error && article && (
+        ) : (
           <motion.article
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
