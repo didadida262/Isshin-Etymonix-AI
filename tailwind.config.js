@@ -24,11 +24,36 @@ export default {
       },
       animation: {
         shimmer: 'shimmer 1.4s ease-in-out infinite',
+        'grid-drift': 'grid-drift 100s linear infinite',
+        'orb-1': 'orb-1 22s ease-in-out infinite',
+        'orb-2': 'orb-2 28s ease-in-out infinite',
+        'orb-3': 'orb-3 34s ease-in-out infinite',
+        sheen: 'sheen 14s ease-in-out infinite',
       },
       keyframes: {
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        'grid-drift': {
+          '0%': { backgroundPosition: '0 0, 0 0' },
+          '100%': { backgroundPosition: '48px 48px, 48px 48px' },
+        },
+        'orb-1': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%': { transform: 'translate(6%, -4%) scale(1.06)' },
+        },
+        'orb-2': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%': { transform: 'translate(-8%, 6%) scale(1.04)' },
+        },
+        'orb-3': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%': { transform: 'translate(5%, 8%) scale(1.08)' },
+        },
+        sheen: {
+          '0%, 100%': { opacity: '0.35' },
+          '50%': { opacity: '0.85' },
         },
       },
     },
