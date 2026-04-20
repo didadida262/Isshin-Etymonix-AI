@@ -1,4 +1,4 @@
-import { faLock, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { faCircleCheck, faGlobe, faLock, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
@@ -28,8 +28,30 @@ function spreadOffset(
   };
 }
 
+const TRANSLATIONS = {
+  zh: {
+    title: '韦林英文词根轰炸',
+    startBtn: '开始轰炸',
+    locked: '锁定',
+    unlocked: '未解锁',
+    toast: 'Unit 1 轰炸流程即将接入，当前为占位反馈。',
+    lang: 'EN',
+  },
+  en: {
+    title: 'Weilin Root Bombard',
+    startBtn: 'Start Bombard',
+    locked: 'LOCKED',
+    unlocked: 'Not Unlocked',
+    toast: 'Unit 1 bombarding process is coming soon.',
+    lang: '中',
+  },
+} as const;
+
 export function RootBombardPage() {
-  const [selectedId, setSelectedId] = useState(1);
+  const [lang, setLang] = useState<'zh' | 'en'>('en');
+  const t = TRANSLATIONS[lang];
+
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const gridRef = useRef<HTMLUListElement>(null);
   const [cellMetrics, setCellMetrics] = useState<{ w: number; h: number } | null>(
@@ -52,18 +74,27 @@ export function RootBombardPage() {
 
   const handleStart = useCallback(() => {
     if (!canStart) return;
-    setToast('Unit 1 轰炸流程即将接入，当前为占位反馈。');
+    setToast(t.toast);
     window.setTimeout(() => setToast(null), 3200);
-  }, [canStart]);
+  }, [canStart, t.toast]);
 
   return (
     <div className="relative flex h-screen min-h-0 flex-col bg-zinc-950 text-zinc-100">
       <AmbientBackdrop />
 
-      <header className="relative z-10 shrink-0 border-b border-white/[0.08] bg-zinc-950/20 px-6 py-4 backdrop-blur-md">
+      <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-zinc-950/20 px-6 py-4 backdrop-blur-md">
         <h1 className="font-display text-xl font-semibold tracking-tight text-white md:text-2xl">
-          韦林英文词根轰炸
+          {t.title}
         </h1>
+
+        <button
+          type="button"
+          onClick={() => setLang((prev) => (prev === 'zh' ? 'en' : 'zh'))}
+          className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:border-cyan-500/30 hover:bg-white/10 hover:text-white"
+        >
+          <FontAwesomeIcon icon={faGlobe} className="text-cyan-400" />
+          <span>{t.lang}</span>
+        </button>
       </header>
 
       <main className="relative z-10 flex min-h-0 flex-1 flex-col">
@@ -79,9 +110,12 @@ export function RootBombardPage() {
                 cell={cellMetrics ?? FALLBACK_CELL}
                 reduceMotion={!!reduceMotion}
                 unit={unit}
+                translations={t}
                 selected={selectedId === unit.id}
                 onSelect={() => {
-                  if (!unit.locked) setSelectedId(unit.id);
+                  if (!unit.locked) {
+                    setSelectedId((prev) => (prev === unit.id ? null : unit.id));
+                  }
                 }}
               />
             ))}
@@ -102,7 +136,7 @@ export function RootBombardPage() {
                 : 'cursor-not-allowed border border-zinc-800/90 bg-zinc-900/90 text-zinc-500 shadow-none',
             )}
           >
-            开始轰炸
+            {t.startBtn}
           </motion.button>
         </footer>
       </main>
@@ -133,6 +167,7 @@ function UnitCard({
   cell,
   reduceMotion,
   unit,
+  translations,
   selected,
   onSelect,
 }: {
@@ -140,6 +175,7 @@ function UnitCard({
   cell: { w: number; h: number };
   reduceMotion: boolean;
   unit: RootUnit;
+  translations: (typeof TRANSLATIONS)['zh' | 'en'];
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -185,14 +221,14 @@ function UnitCard({
             <FontAwesomeIcon
               icon={faLock}
               className="h-5 w-5 text-zinc-500"
-              title="未解锁"
+              title={translations.unlocked}
             />
           </span>
           <span className="font-display text-sm font-medium text-zinc-400">
             {unit.label}
           </span>
           <span className="flex h-4 items-center justify-center text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-            锁定
+            {translations.locked}
           </span>
         </button>
       ) : (
@@ -207,28 +243,44 @@ function UnitCard({
           animate={
             selected
               ? {
+                  scale: 1.02,
                   boxShadow: [
-                    '0 0 20px -6px rgba(34,211,238,0.25)',
-                    '0 0 28px -4px rgba(139,92,246,0.35)',
-                    '0 0 20px -6px rgba(34,211,238,0.25)',
+                    '0 0 20px -6px rgba(34,211,238,0.3)',
+                    '0 0 32px -4px rgba(139,92,246,0.45)',
+                    '0 0 20px -6px rgba(34,211,238,0.3)',
                   ],
                 }
-              : { boxShadow: '0 0 0 0 transparent' }
+              : { scale: 1, boxShadow: '0 0 0 0 transparent' }
           }
           transition={
             selected
-              ? { boxShadow: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } }
-              : undefined
+              ? {
+                  scale: { type: 'spring', stiffness: 300, damping: 20 },
+                  boxShadow: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' },
+                }
+              : { scale: { type: 'spring', stiffness: 300, damping: 20 } }
           }
           className={cn(
             'group relative flex w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border px-3 py-4 text-center md:py-4',
+            'outline-none transition-all duration-500',
             CARD_MIN_H,
-            'shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
             selected
-              ? 'border-cyan-400/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_0_0_1px_rgba(34,211,238,0.12)]'
-              : 'border-white/12 hover:border-violet-400/40',
+              ? 'border-cyan-400/60 shadow-[0_0_25px_-5px_rgba(34,211,238,0.4),inset_0_1px_0_rgba(255,255,255,0.15)] scale-[1.02]'
+              : 'border-white/20 bg-white/[0.02] hover:border-cyan-400/40 hover:bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
           )}
         >
+          <AnimatePresence>
+            {selected && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                exit={{ opacity: 0, scale: 0.5, rotate: -45 }}
+                className="absolute right-2 top-2 z-20 flex h-4 w-4 items-center justify-center rounded-full bg-cyan-500 text-[10px] text-white shadow-lg shadow-cyan-500/30"
+              >
+                <FontAwesomeIcon icon={faCircleCheck} />
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div
             className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-xl"
             aria-hidden
@@ -236,10 +288,10 @@ function UnitCard({
             {/* 主色渐变底 */}
             <div
               className={cn(
-                'absolute inset-0 bg-gradient-to-br transition-all duration-500',
+                'absolute inset-0 bg-gradient-to-br transition-all duration-700',
                 selected
-                  ? 'from-violet-900/65 via-zinc-900/95 to-cyan-950/55'
-                  : 'from-violet-950/50 via-zinc-900 to-zinc-950/98',
+                  ? 'from-violet-800/40 via-zinc-900/90 to-cyan-900/40 opacity-100'
+                  : 'from-violet-600/15 via-zinc-900/80 to-cyan-600/15 opacity-80 group-hover:opacity-100',
               )}
             />
             {/* 斜向高光层 */}
@@ -254,14 +306,14 @@ function UnitCard({
             {/* 角部光斑 */}
             <div
               className={cn(
-                'absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl',
-                selected ? 'bg-cyan-400/35' : 'bg-cyan-500/22',
+                'absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl transition-opacity duration-500',
+                selected ? 'bg-cyan-400/45 opacity-100' : 'bg-cyan-500/22 opacity-60',
               )}
             />
             <div
               className={cn(
-                'absolute -bottom-10 -left-8 h-32 w-32 rounded-full blur-2xl',
-                selected ? 'bg-violet-500/40' : 'bg-violet-600/28',
+                'absolute -bottom-10 -left-8 h-32 w-32 rounded-full blur-2xl transition-opacity duration-500',
+                selected ? 'bg-violet-500/50 opacity-100' : 'bg-violet-600/28 opacity-60',
               )}
             />
             {/* 径向氛围 */}
@@ -298,19 +350,24 @@ function UnitCard({
             <FontAwesomeIcon
               icon={faWandMagicSparkles}
               className={cn(
-                'h-5 w-5 transition-colors duration-200',
-                selected ? 'text-cyan-300' : 'text-zinc-500 group-hover:text-violet-300',
+                'h-5 w-5 transition-colors duration-300',
+                selected ? 'text-cyan-300' : 'text-zinc-300 group-hover:text-cyan-200',
               )}
             />
           </motion.span>
-          <span className="relative z-10 font-display text-sm font-medium text-zinc-200">
+          <span
+            className={cn(
+              'relative z-10 font-display text-sm font-semibold transition-colors duration-300',
+              selected ? 'text-white' : 'text-zinc-200 group-hover:text-white',
+            )}
+          >
             {unit.label}
           </span>
           <span
             className="relative z-10 pointer-events-none flex h-4 items-center justify-center text-[10px] font-medium uppercase tracking-wider text-transparent select-none"
             aria-hidden
           >
-            锁定
+            {translations.locked}
           </span>
         </motion.button>
       )}
