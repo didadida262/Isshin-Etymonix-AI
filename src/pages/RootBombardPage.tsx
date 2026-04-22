@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { AmbientBackdrop } from '../components/AmbientBackdrop';
-import { ROOT_UNITS } from '../data/rootUnits';
+import { ROOT_UNITS } from '../data/rootUnits.ts';
 import { cn } from '../lib/cn';
 import type { RootUnit } from '../types/rootUnit';
 
@@ -123,7 +123,7 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
               transitionPhase === 'whiteout' && 'pointer-events-none'
             )}
           >
-            {ROOT_UNITS.map((unit, index) => (
+            {ROOT_UNITS.map((unit: RootUnit, index: number) => (
               <UnitCard
                 key={unit.id}
                 index={index}
@@ -196,7 +196,7 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
           >
             {selectedId !== null && (
               <SelectedCardCenter
-                unit={ROOT_UNITS.find(u => u.id === selectedId)!}
+                unit={ROOT_UNITS.find((u: RootUnit) => u.id === selectedId)!}
                 isWhiteout={transitionPhase === 'whiteout'}
                 reduceMotion={!!reduceMotion}
               />
