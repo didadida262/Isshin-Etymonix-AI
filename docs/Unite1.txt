@@ -16,7 +16,7 @@ BELL: meaning 'war',Bellona is the roman godness of war, her husband was 'mars',
 - antebellum: before war
 - bellicose: aggressive,describe nation or nation's leaders
 - belligerence:His speech was full of belligerence
-- rebellion
+- rebellion: a rebellion against the government or the law, especially by a group of people who are not part of the government
 
 PAC: meaning 'peace'
 - pacify: 安抚情绪。可以是宝宝，也可以是人民。 use army to pacify people

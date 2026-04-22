@@ -1,4 +1,4 @@
-import { faCircleCheck, faGlobe, faLock, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { faCircleCheck, faGlobe, faLock, faSpinner, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
@@ -57,7 +57,7 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [, setTransitionPhase] = useState<'idle' | 'disappearing' | 'moving' | 'whiteout'>('idle');
+  const [transitionPhase, setTransitionPhase] = useState<'idle' | 'disappearing' | 'moving' | 'whiteout'>('idle');
   const gridRef = useRef<HTMLUListElement>(null);
   const [cellMetrics, setCellMetrics] = useState<{ w: number; h: number } | null>(
     null,
@@ -118,7 +118,10 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
           <ul
             ref={gridRef}
-            className="mx-auto grid max-w-6xl grid-cols-4 gap-3"
+            className={cn(
+              'mx-auto grid max-w-6xl grid-cols-4 gap-3',
+              transitionPhase === 'whiteout' && 'pointer-events-none'
+            )}
           >
             {ROOT_UNITS.map((unit, index) => (
               <UnitCard
@@ -130,6 +133,7 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
                 translations={t}
                 selected={selectedId === unit.id}
                 isTransitioning={isTransitioning}
+                transitionPhase={transitionPhase}
                 onSelect={() => {
                   if (!unit.locked && !isTransitioning) {
                     setSelectedId((prev) => (prev === unit.id ? null : unit.id));
@@ -143,22 +147,112 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
         <footer className="relative z-10 flex h-24 shrink-0 items-center justify-center border-t border-white/[0.08] bg-zinc-950/40 px-4 backdrop-blur-xl">
           <motion.button
             type="button"
-            disabled={!canStart}
+            disabled={!canStart || isTransitioning}
             onClick={handleStart}
-            whileHover={canStart ? { scale: 1.02 } : undefined}
-            whileTap={canStart ? { scale: 0.98 } : undefined}
+            whileHover={canStart && !isTransitioning ? { scale: 1.02 } : undefined}
+            whileTap={canStart && !isTransitioning ? { scale: 0.98 } : undefined}
             className={cn(
-              'rounded-xl px-10 py-3.5 text-sm font-semibold tracking-wide',
+              'relative flex items-center justify-center gap-2 rounded-xl px-10 py-3.5 text-sm font-semibold tracking-wide transition-all duration-300',
               canStart
-                ? 'group border border-zinc-600/90 bg-gradient-to-b from-zinc-700/95 via-zinc-900 to-black text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-12px_24px_-12px_rgba(0,0,0,0.5)] transition-[color,border-color,box-shadow] duration-200 hover:border-cyan-500/25 hover:text-cyan-50 hover:animate-lightning-rim'
+                ? 'group border border-zinc-600/90 bg-gradient-to-b from-zinc-700/95 via-zinc-900 to-black text-zinc-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-12px_24px_-12px_rgba(0,0,0,0.5)] hover:border-cyan-500/25 hover:text-cyan-50 hover:animate-lightning-rim'
                 : 'cursor-not-allowed border border-zinc-800/90 bg-zinc-900/90 text-zinc-500 shadow-none',
+              isTransitioning && 'opacity-80'
             )}
           >
-            {t.startBtn}
+            <AnimatePresence mode="wait">
+              {isTransitioning ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="flex items-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin text-cyan-400" />
+                  <span>Loading...</span>
+                </motion.div>
+              ) : (
+                <motion.span
+                  key="text"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                >
+                  {t.startBtn}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </motion.button>
         </footer>
       </main>
+
+      <AnimatePresence>
+        {(transitionPhase === 'moving' || transitionPhase === 'whiteout') && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm"
+          >
+            {selectedId !== null && (
+              <SelectedCardCenter
+                unit={ROOT_UNITS.find(u => u.id === selectedId)!}
+                isWhiteout={transitionPhase === 'whiteout'}
+                reduceMotion={!!reduceMotion}
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {transitionPhase === 'whiteout' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.2 }}
+            className="absolute inset-0 z-[60] bg-white"
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function SelectedCardCenter({
+  unit,
+  isWhiteout,
+  reduceMotion,
+}: {
+  unit: RootUnit;
+  isWhiteout: boolean;
+  reduceMotion: boolean;
+}) {
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1.2, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20, duration: 1 }}
+      className="relative flex h-40 w-40 flex-col items-center justify-center rounded-2xl border border-cyan-400/60 bg-gradient-to-br from-violet-900/60 via-zinc-900/90 to-cyan-900/60 shadow-[0_0_60px_-10px_rgba(34,211,238,0.5),0_0_100px_-20px_rgba(139,92,246,0.4)]"
+    >
+      <motion.span
+        className="mb-2 text-2xl font-bold text-white"
+        animate={!isWhiteout ? {
+          textShadow: [
+            '0 0 20px rgba(34,211,238,0.5)',
+            '0 0 40px rgba(139,92,246,0.6)',
+            '0 0 20px rgba(34,211,238,0.5)',
+          ],
+        } : { textShadow: '0 0 100px rgba(255,255,255,1)' }}
+        transition={{ duration: 1.5, repeat: Infinity }}
+      >
+        {unit.label}
+      </motion.span>
+      <FontAwesomeIcon
+        icon={faWandMagicSparkles}
+        className="h-8 w-8 text-cyan-300"
+      />
+    </motion.div>
   );
 }
 
@@ -173,6 +267,7 @@ function UnitCard({
   translations,
   selected,
   isTransitioning,
+  transitionPhase,
   onSelect,
 }: {
   index: number;
@@ -182,11 +277,19 @@ function UnitCard({
   translations: (typeof TRANSLATIONS)['zh' | 'en'];
   selected: boolean;
   isTransitioning: boolean;
+  transitionPhase: 'idle' | 'disappearing' | 'moving' | 'whiteout';
   onSelect: () => void;
 }) {
   const locked = unit.locked;
   const off = spreadOffset(index, cell);
   const stackTwist = (index % 7) * 0.9 - 2.7;
+
+  const getOpacity = () => {
+    if (!isTransitioning) return 1;
+    if (transitionPhase === 'disappearing') return 0;
+    if (transitionPhase === 'moving' || transitionPhase === 'whiteout') return 0;
+    return 1;
+  };
 
   return (
     <motion.li
@@ -201,13 +304,20 @@ function UnitCard({
               opacity: 1,
             }
       }
-      animate={{ x: 0, y: 0, scale: 1, rotate: 0, opacity: 1 }}
+      animate={{
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotate: 0,
+        opacity: getOpacity(),
+      }}
       transition={{
         type: 'spring',
         stiffness: 520,
         damping: 20,
         mass: 0.52,
         delay: reduceMotion ? 0 : index * 0.004,
+        opacity: { duration: 0.8 },
       }}
       style={{ zIndex: index }}
       className="min-w-0"
