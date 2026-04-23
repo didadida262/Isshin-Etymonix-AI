@@ -3,14 +3,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { UNIT_1_ROOTS } from '../data/unit1Roots';
-import type { RootGroup, RootWord } from '../data/unit1Roots';
+import type { RootGroup, WordItem } from '../data/unit1Roots';
 
 /* ── 统一背面设计 token ── */
 const BACK_CLASSES = {
   outer:
-    'rounded-xl border border-zinc-600/50 bg-gradient-to-br from-zinc-800/98 via-zinc-900 to-black shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_4px_16px_-4px_rgba(0,0,0,0.6)]',
-  pattern: 'bg-[radial-gradient(circle_1px_at_center,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:12px_12px]',
-  emblem: 'text-zinc-500/60',
+    'rounded-xl border border-cyan-500/20 bg-gradient-to-br from-zinc-900 via-black to-zinc-900 shadow-[0_0_40px_-10px_rgba(6,182,212,0.3),inset_0_0_60px_-20px_rgba(6,182,212,0.15)]',
+  pattern: 'bg-[radial-gradient(circle_2px_at_center,rgba(6,182,212,0.15)_1px,transparent_1px)] bg-[length:16px_16px]',
+  emblem: 'text-cyan-400/80',
+  logoContainer: 'absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-950/40 to-zinc-900/60 backdrop-blur-sm border border-cyan-500/20 shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]',
+  logoIcon: 'text-cyan-400/80',
+  glow: 'absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_50%,rgba(6,182,212,0.12),transparent_70%)]',
 };
 
 /* ── 常量 ── */
@@ -23,7 +26,7 @@ interface FlatCard {
   rootIdx: number;
   wordIdx: number;
   root: RootGroup;
-  word: RootWord;
+  word: WordItem;
 }
 const ALL_CARDS: FlatCard[] = UNIT_1_ROOTS.flatMap((root, ri) =>
   root.words.map((word, wi) => ({ rootIdx: ri, wordIdx: wi, root, word })),
@@ -215,18 +218,31 @@ export function BombardPage({ onBack }: { onBack: () => void }) {
       <main className="mx-auto max-w-6xl space-y-10 px-4 py-8 md:px-6">
         {UNIT_1_ROOTS.map((root, ri) => (
           <div
-            key={root.id}
+            key={root.root}
             ref={(el) => {
               sectionRefs.current[ri] = el;
             }}
             className="scroll-mt-24"
           >
             {/* 词根标题 */}
-            <div className="mb-3 flex items-baseline gap-3">
-              <span className="font-display text-xl font-bold text-white">
-                {root.root}
+            <div className="mb-4 group relative flex items-center gap-3">
+              {/* 词根 - 突出显示 */}
+              <span className="relative flex items-center">
+                {/* 发光背景 */}
+                <span className="absolute -inset-1.5 rounded-md bg-gradient-to-r from-cyan-500/20 to-violet-500/20 blur-sm transition-opacity opacity-50 group-hover:opacity-100" />
+                {/* 词根文字 */}
+                <span className="relative font-display text-base font-bold tracking-widest bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+                  {root.root}
+                </span>
               </span>
-              <span className="text-sm text-zinc-500">{root.meaning}</span>
+              
+              {/* 分隔线 */}
+              <div className="h-4 w-px bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+              
+              {/* 释义 - hover 时显示 */}
+              <span className="text-sm text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
+                {root.meaning}
+              </span>
             </div>
 
             {/* 2×2 卡牌网格 */}
@@ -265,7 +281,7 @@ function FlipCard({
   highlighted,
   reduceMotion,
 }: {
-  word: RootWord;
+  word: WordItem;
   rootLabel: string;
   flipped: boolean;
   highlighted: boolean;
@@ -287,25 +303,34 @@ function FlipCard({
       >
         {/* ──── 背面（统一设计） ──── */}
         <div
-          className={`${BACK_CLASSES.outer} flex aspect-[4/3] flex-col items-center justify-center gap-2 overflow-hidden`}
+          className={`${BACK_CLASSES.outer} relative flex aspect-[4/3] items-center justify-center overflow-hidden`}
           style={{ backfaceVisibility: 'hidden' }}
         >
+          {/* 动态光晕背景 */}
+          <div className={BACK_CLASSES.glow} aria-hidden />
+          
           {/* 纹理底 */}
           <div className={`absolute inset-0 ${BACK_CLASSES.pattern}`} aria-hidden />
 
-          {/* 中心徽记 */}
-          <div className={`relative flex flex-col items-center gap-1 ${BACK_CLASSES.emblem}`}>
-            <span className="font-display text-2xl font-bold tracking-widest opacity-70">
-              {rootLabel.toUpperCase()}
-            </span>
-            <div className="h-px w-10 bg-gradient-to-r from-transparent via-zinc-500/50 to-transparent" />
+          {/* 中心光环装饰 */}
+          <div className="relative" aria-hidden>
+            {/* 外圈光环 */}
+            <div className="absolute -inset-10 rounded-full border border-cyan-500/10 animate-pulse" />
+            <div className="absolute -inset-8 rounded-full border border-cyan-500/15" />
+            <div className="absolute -inset-6 rounded-full border border-cyan-500/20 animate-glow" />
           </div>
 
-          {/* 四角装饰 */}
-          <span className="absolute left-2.5 top-2.5 h-2.5 w-2.5 border-l border-t border-zinc-600/50" aria-hidden />
-          <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 border-r border-t border-zinc-600/50" aria-hidden />
-          <span className="absolute bottom-2.5 left-2.5 h-2.5 w-2.5 border-b border-l border-zinc-600/50" aria-hidden />
-          <span className="absolute bottom-2.5 right-2.5 h-2.5 w-2.5 border-b border-r border-zinc-600/50" aria-hidden />
+          {/* 四角装饰 - 更炫酷 */}
+          <div className="absolute left-4 top-4 h-4 w-4 border-l-2 border-t-2 border-cyan-500/40" aria-hidden />
+          <div className="absolute right-4 top-4 h-4 w-4 border-r-2 border-t-2 border-cyan-500/40" aria-hidden />
+          <div className="absolute bottom-4 left-4 h-4 w-4 border-b-2 border-l-2 border-cyan-500/40" aria-hidden />
+          <div className="absolute bottom-4 right-4 h-4 w-4 border-b-2 border-r-2 border-cyan-500/40" aria-hidden />
+          
+          {/* 底部扫描线动画 */}
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-scan" aria-hidden />
+          
+          {/* 顶部扫描线动画 */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent animate-scan" aria-hidden />
         </div>
 
         {/* ──── 正面 ──── */}
@@ -319,12 +344,12 @@ function FlipCard({
         >
           {/* 单词 */}
           <span className="font-display text-xl font-bold text-white">
-            {word.front}
+            {word.word}
           </span>
           <div className="h-px w-12 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
           {/* 拆解释义 */}
           <span className="max-w-[85%] text-center text-sm leading-relaxed text-zinc-300">
-            {word.back}
+            {word.definition}
           </span>
         </div>
       </motion.div>
