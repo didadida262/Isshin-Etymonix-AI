@@ -1,0 +1,16 @@
+{
+  "appId": "com.weilin.rootbombard",
+  "productName": "韦林英文词根轰炸",
+  "copyright": "Copyright © 2026 Weilin",
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*"
+  ],
+  "extraMetadata": {
+    "main": "electron/main.cjs"
+  }
+}

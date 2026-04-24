@@ -6,6 +6,14 @@ dist
 dist-ssr
 *.local
 
+# Electron
+release
+*.dmg
+*.exe
+*.AppImage
+*.deb
+*.rpm
+
 # Environment
 .env
 .env.*.local
