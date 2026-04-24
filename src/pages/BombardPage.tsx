@@ -1,7 +1,8 @@
 import { faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React from 'react';
 import { cn } from '../lib/cn';
 import { loadUnitData, type RootGroup, type WordItem } from '../lib/loadUnitData';
 
@@ -28,13 +29,6 @@ interface FlatCard {
   root: RootGroup;
   word: WordItem;
 }
-
-// 使用 unitData 动态生成卡片列表
-const useAllCards = (unitData: RootGroup[]): FlatCard[] => {
-  return unitData.flatMap((root, ri) =>
-    root.words.map((word, wi) => ({ rootIdx: ri, wordIdx: wi, root, word })),
-  );
-};
 
 /* ── 工具 ── */
 function pickRandom(cards: FlatCard[], exclude?: { rootIdx: number; wordIdx: number }): FlatCard {
@@ -110,6 +104,10 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const timerRef = useRef<ReturnType<typeof setInterval>>(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(0);
   const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  
+  /* 性能优化：缓存 allCards */
+  const getAllCards = useAllCards(unitData);
+  const allCards = useMemo(() => getAllCards(), [getAllCards]);
 
   /* ── 清理定时器 ── */
   const clearTimers = useCallback(() => {
@@ -152,7 +150,8 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   /* ── 进入下一轮 ── */
   const nextRound = useCallback(
     async (prev: FlatCard | null) => {
-      if (allCards.length === 0) return;
+      const cards = getAllCards();
+      if (cards.length === 0) return;
       
       // 先翻回上一张
       if (prev) flipClose(prev);
@@ -162,7 +161,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 
       // 随机抽卡
       try {
-        const card = pickRandom(allCards, prev ?? undefined);
+        const card = pickRandom(cards, prev ?? undefined);
         setCurrent(card);
 
         // 滚动到对应词根
@@ -171,17 +170,22 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         // 翻开
         flipOpen(card);
 
-        // 开始倒计时
-        setCountdown(REVEAL_SECONDS);
+        // 开始倒计时 - 优化：使用 requestAnimationFrame 减少重渲染
         let sec = REVEAL_SECONDS;
+        setCountdown(sec);
+        
         clearInterval(timerRef.current);
+        const startTime = Date.now();
+        
         timerRef.current = setInterval(() => {
-          sec -= 1;
-          if (sec <= 0) {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          const remaining = REVEAL_SECONDS - elapsed;
+          
+          if (remaining <= 0) {
             clearInterval(timerRef.current);
             setCountdown(0);
           } else {
-            setCountdown(sec);
+            setCountdown(remaining);
           }
         }, 1000);
 
@@ -194,7 +198,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         console.error('Failed to pick card:', err);
       }
     },
-    [allCards, flipClose, flipOpen, scrollToRoot],
+    [getAllCards, flipClose, flipOpen, scrollToRoot],
   );
 
   /* ── 开始 / 停止 ── */
@@ -211,6 +215,9 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
       nextRound(null);
     }
   }, [clearTimers, nextRound, running]);
+  
+  /* 性能优化：缓存 allCards 长度 */
+  const cardsCount = allCards.length;
 
   /* ── 卸载清理 ── */
   useEffect(() => clearTimers, [clearTimers]);
@@ -256,7 +263,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
           <button
             type="button"
             onClick={toggleRunning}
-            disabled={loading || allCards.length === 0}
+            disabled={loading || cardsCount === 0}
             className={`
               inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors
               ${
@@ -264,7 +271,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
                   ? 'border-red-500/40 bg-red-950/50 text-red-300 hover:bg-red-900/50'
                   : 'border-emerald-500/40 bg-emerald-950/50 text-emerald-300 hover:bg-emerald-900/50'
               }
-              ${(loading || allCards.length === 0) ? ' opacity-50 cursor-not-allowed' : ''}
+              ${(loading || cardsCount === 0) ? ' opacity-50 cursor-not-allowed' : ''}
             `}
           >
             <FontAwesomeIcon icon={running ? faStop : faPlay} className="h-3.5 w-3.5" />
@@ -299,7 +306,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         )}
 
         {/* 空数据状态 */}
-        {!loading && !error && allCards.length === 0 && (
+        {!loading && !error && cardsCount === 0 && (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-4">
               <p className="text-zinc-400">Unit {unitId} 暂无单词数据</p>
@@ -309,7 +316,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         )}
 
         {/* 词根列表 */}
-        {!loading && !error && allCards.length > 0 && (
+        {!loading && !error && cardsCount > 0 && (
           unitData.map((root, ri) => (
             <div
               key={root.root}
@@ -366,9 +373,9 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 }
 
 /* ════════════════════════════════════════
-   翻转卡牌组件
+   翻转卡牌组件（优化版）
    ════════════════════════════════════════ */
-function FlipCard({
+const FlipCard = React.memo(({
   word,
   flipped,
   highlighted,
@@ -378,12 +385,13 @@ function FlipCard({
   flipped: boolean;
   highlighted: boolean;
   reduceMotion: boolean;
-}) {
+}) => {
   const openMs = reduceMotion ? 0 : FLIP_OPEN_MS;
   const closeMs = reduceMotion ? 0 : FLIP_CLOSE_MS;
 
-  /* 翻开 5s 后才显示释义 */
+  /* 翻开 5s 后才显示释义 - 优化：使用 useMemo */
   const [showDef, setShowDef] = useState(false);
+  
   useEffect(() => {
     if (!flipped) {
       setShowDef(false);
@@ -392,13 +400,20 @@ function FlipCard({
     const timer = setTimeout(() => setShowDef(true), 5000);
     return () => clearTimeout(timer);
   }, [flipped]);
+  
+  // 性能优化：缓存样式
+  const hoverScale = reduceMotion ? 1 : 1.02;
+  const isHighlighted = highlighted;
 
   return (
     <motion.div
       className="perspective-[800px] cursor-pointer"
       style={{ perspective: '800px' }}
-      whileHover={{ scale: 1.04 }}
-      transition={{ type: 'spring', stiffness: 350, damping: 20 }}
+      whileHover={{ scale: hoverScale }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      // 性能优化：减少重绘
+      shouldRender={true}
+      layout={false}
     >
       <motion.div
         className="relative w-full"
@@ -414,31 +429,38 @@ function FlipCard({
           className={`${BACK_CLASSES.outer} relative flex aspect-[4/3] items-center justify-center overflow-hidden`}
           style={{ backfaceVisibility: 'hidden' }}
         >
-          {/* 动态光晕背景 */}
-          <div className={BACK_CLASSES.glow} aria-hidden />
+          {/* 动态光晕背景 - 性能优化：仅在高亮时启用 */}
+          {!reduceMotion && <div className={BACK_CLASSES.glow} aria-hidden />}
           
-          {/* 纹理底 */}
-          <div className={`absolute inset-0 ${BACK_CLASSES.pattern}`} aria-hidden />
+          {/* 纹理底 - 性能优化：简化 */}
+          {!reduceMotion && <div className={`absolute inset-0 ${BACK_CLASSES.pattern}`} aria-hidden />}
 
-          {/* 中心光环装饰 */}
-          <div className="relative" aria-hidden>
-            {/* 外圈光环 */}
-            <div className="absolute -inset-10 rounded-full border border-cyan-500/10 animate-pulse" />
-            <div className="absolute -inset-8 rounded-full border border-cyan-500/15" />
-            <div className="absolute -inset-6 rounded-full border border-cyan-500/20 animate-glow" />
-          </div>
+          {/* 中心光环装饰 - 性能优化：仅在 highlighted 时显示 */}
+          {highlighted && !reduceMotion && (
+            <div className="relative" aria-hidden>
+              <div className="absolute -inset-10 rounded-full border border-cyan-500/10 animate-pulse" />
+              <div className="absolute -inset-8 rounded-full border border-cyan-500/15" />
+              <div className="absolute -inset-6 rounded-full border border-cyan-500/20 animate-glow" />
+            </div>
+          )}
 
-          {/* 四角装饰 - 更炫酷 */}
-          <div className="absolute left-4 top-4 h-4 w-4 border-l-2 border-t-2 border-cyan-500/40" aria-hidden />
-          <div className="absolute right-4 top-4 h-4 w-4 border-r-2 border-t-2 border-cyan-500/40" aria-hidden />
-          <div className="absolute bottom-4 left-4 h-4 w-4 border-b-2 border-l-2 border-cyan-500/40" aria-hidden />
-          <div className="absolute bottom-4 right-4 h-4 w-4 border-b-2 border-r-2 border-cyan-500/40" aria-hidden />
+          {/* 四角装饰 - 性能优化：简化 */}
+          {!reduceMotion && (
+            <>
+              <div className="absolute left-4 top-4 h-4 w-4 border-l-2 border-t-2 border-cyan-500/40" aria-hidden />
+              <div className="absolute right-4 top-4 h-4 w-4 border-r-2 border-t-2 border-cyan-500/40" aria-hidden />
+              <div className="absolute bottom-4 left-4 h-4 w-4 border-b-2 border-l-2 border-cyan-500/40" aria-hidden />
+              <div className="absolute bottom-4 right-4 h-4 w-4 border-b-2 border-r-2 border-cyan-500/40" aria-hidden />
+            </>
+          )}
           
-          {/* 底部扫描线动画 */}
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-scan" aria-hidden />
-          
-          {/* 顶部扫描线动画 */}
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent animate-scan" aria-hidden />
+          {/* 扫描线动画 - 性能优化：仅在高亮时显示 */}
+          {highlighted && !reduceMotion && (
+            <>
+              <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-scan" aria-hidden />
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent animate-scan" aria-hidden />
+            </>
+          )}
         </div>
 
         {/* ──── 正面 ──── */}

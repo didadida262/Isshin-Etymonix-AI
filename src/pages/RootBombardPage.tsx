@@ -1,7 +1,8 @@
 import { faCircleCheck, faGlobe, faLock, faSpinner, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useCallback, useLayoutEffect, useRef, useState, useEffect } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, useEffect, memo } from 'react';
+import React from 'react';
 import { AmbientBackdrop } from '../components/AmbientBackdrop';
 import { getAvailableRootUnits, type RootUnit } from '../data/rootUnits';
 import { cn } from '../lib/cn';
@@ -277,7 +278,7 @@ function SelectedCardCenter({
 /** 与底部「锁定」行同高，保证解锁/锁定卡片等高 */
 const CARD_MIN_H = 'min-h-[118px] md:min-h-[124px]';
 
-function UnitCard({
+const UnitCard = React.memo(({
   index,
   cell,
   gridCols,
@@ -301,7 +302,7 @@ function UnitCard({
   isTransitioning: boolean;
   transitionPhase: 'idle' | 'disappearing' | 'moving' | 'whiteout';
   onSelect: () => void;
-}) {
+}) => {
   const locked = unit.locked;
   const off = spreadOffset(index, cell, gridCols, gridRows);
   const stackTwist = (index % 7) * 0.9 - 2.7;
