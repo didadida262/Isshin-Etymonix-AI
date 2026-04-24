@@ -150,6 +150,8 @@ export function BombardPage({ onBack }: { onBack: () => void }) {
       setRunning(false);
       setCurrent(null);
       setCountdown(0);
+      // 所有卡牌翻回背面
+      setFlipped({});
     } else {
       setRunning(true);
       nextRound(null);

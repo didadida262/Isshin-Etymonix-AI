@@ -85,6 +85,16 @@
     "root": "CRIM: fault or crime"
   },
   {
+    "word": "decriminalize",
+    "definition": "非罪化",
+    "root": "CRIM: fault or crime"
+  },
+  {
+    "word": "incriminate",
+    "definition": "you know",
+    "root": "CRIM: fault or crime"
+  },
+  {
     "word": "recrimination",
     "definition": "There was no anger, no recrimination",
     "root": "CRIM: fault or crime"

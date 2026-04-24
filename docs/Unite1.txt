@@ -29,8 +29,8 @@ PAC: meaning 'peace'
 
 CRIM: fault or crime
 - criminology: study of crime
-- decriminalize 非罪化
-- incriminate 
+- decriminalize: 非罪化
+- incriminate: you know
 - recrimination：There was no anger, no recrimination
 
 PROB：prove or proof
