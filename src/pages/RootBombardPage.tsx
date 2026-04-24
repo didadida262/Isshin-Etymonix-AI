@@ -1,10 +1,11 @@
 import { faCircleCheck, faGlobe, faLock, faSpinner, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useCallback, useLayoutEffect, useRef, useState, useEffect, memo } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, useEffect } from 'react';
 import React from 'react';
 import { AmbientBackdrop } from '../components/AmbientBackdrop';
-import { getAvailableRootUnits, type RootUnit } from '../data/rootUnits';
+import { getAvailableRootUnits } from '../data/rootUnits';
+import type { RootUnit } from '../types/rootUnit';
 import { cn } from '../lib/cn';
 
 const GRID_COLS = 4;
@@ -278,6 +279,20 @@ function SelectedCardCenter({
 /** 与底部「锁定」行同高，保证解锁/锁定卡片等高 */
 const CARD_MIN_H = 'min-h-[118px] md:min-h-[124px]';
 
+interface UnitCardProps {
+  index: number;
+  cell: { w: number; h: number };
+  gridCols: number;
+  gridRows: number;
+  reduceMotion: boolean;
+  unit: RootUnit;
+  translations: (typeof TRANSLATIONS)['zh' | 'en'];
+  selected: boolean;
+  isTransitioning: boolean;
+  transitionPhase: 'idle' | 'disappearing' | 'moving' | 'whiteout';
+  onSelect: () => void;
+}
+
 const UnitCard = React.memo(({
   index,
   cell,
@@ -290,19 +305,7 @@ const UnitCard = React.memo(({
   isTransitioning,
   transitionPhase,
   onSelect,
-}: {
-  index: number;
-  cell: { w: number; h: number };
-  gridCols: number;
-  gridRows: number;
-  reduceMotion: boolean;
-  unit: RootUnit;
-  translations: (typeof TRANSLATIONS)['zh' | 'en'];
-  selected: boolean;
-  isTransitioning: boolean;
-  transitionPhase: 'idle' | 'disappearing' | 'moving' | 'whiteout';
-  onSelect: () => void;
-}) => {
+}: UnitCardProps) => {
   const locked = unit.locked;
   const off = spreadOffset(index, cell, gridCols, gridRows);
   const stackTwist = (index % 7) * 0.9 - 2.7;
@@ -512,4 +515,4 @@ const UnitCard = React.memo(({
       )}
     </motion.li>
   );
-}
+});

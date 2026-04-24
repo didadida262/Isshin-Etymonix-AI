@@ -56,9 +56,6 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const [unitData, setUnitData] = useState<RootGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // 使用 hook 获取所有卡片
-  const allCards = useAllCards(unitData);
 
   useEffect(() => {
     let mounted = true;
@@ -101,13 +98,16 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const [running, setRunning] = useState(false);
   const [current, setCurrent] = useState<FlatCard | null>(null);
   const [countdown, setCountdown] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>(0);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(0);
+  const timerRef = useRef<any>(0);
+  const timeoutRef = useRef<any>(0);
   const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({});
   
   /* 性能优化：缓存 allCards */
-  const getAllCards = useAllCards(unitData);
-  const allCards = useMemo(() => getAllCards(), [getAllCards]);
+  const allCards = useMemo(() => {
+    return unitData.flatMap((root, ri) =>
+      root.words.map((word, wi) => ({ rootIdx: ri, wordIdx: wi, root, word })),
+    );
+  }, [unitData]);
 
   /* ── 清理定时器 ── */
   const clearTimers = useCallback(() => {
@@ -150,8 +150,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   /* ── 进入下一轮 ── */
   const nextRound = useCallback(
     async (prev: FlatCard | null) => {
-      const cards = getAllCards();
-      if (cards.length === 0) return;
+      if (allCards.length === 0) return;
       
       // 先翻回上一张
       if (prev) flipClose(prev);
@@ -161,7 +160,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 
       // 随机抽卡
       try {
-        const card = pickRandom(cards, prev ?? undefined);
+        const card = pickRandom(allCards, prev ?? undefined);
         setCurrent(card);
 
         // 滚动到对应词根
@@ -198,7 +197,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         console.error('Failed to pick card:', err);
       }
     },
-    [getAllCards, flipClose, flipOpen, scrollToRoot],
+    [allCards, flipClose, flipOpen, scrollToRoot],
   );
 
   /* ── 开始 / 停止 ── */
@@ -342,7 +341,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
                 
                 {/* 释义 - hover 时显示 */}
                 <span className="text-sm text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
-                  {root.rootMeaning}
+                  {root.meaning}
                 </span>
               </div>
 
@@ -375,17 +374,20 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 /* ════════════════════════════════════════
    翻转卡牌组件（优化版）
    ════════════════════════════════════════ */
+
+interface FlipCardProps {
+  word: WordItem;
+  flipped: boolean;
+  highlighted: boolean;
+  reduceMotion: boolean;
+}
+
 const FlipCard = React.memo(({
   word,
   flipped,
   highlighted,
   reduceMotion,
-}: {
-  word: WordItem;
-  flipped: boolean;
-  highlighted: boolean;
-  reduceMotion: boolean;
-}) => {
+}: FlipCardProps) => {
   const openMs = reduceMotion ? 0 : FLIP_OPEN_MS;
   const closeMs = reduceMotion ? 0 : FLIP_CLOSE_MS;
 
@@ -403,7 +405,6 @@ const FlipCard = React.memo(({
   
   // 性能优化：缓存样式
   const hoverScale = reduceMotion ? 1 : 1.02;
-  const isHighlighted = highlighted;
 
   return (
     <motion.div
@@ -411,9 +412,6 @@ const FlipCard = React.memo(({
       style={{ perspective: '800px' }}
       whileHover={{ scale: hoverScale }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      // 性能优化：减少重绘
-      shouldRender={true}
-      layout={false}
     >
       <motion.div
         className="relative w-full"
@@ -491,4 +489,4 @@ const FlipCard = React.memo(({
       </motion.div>
     </motion.div>
   );
-}
+});

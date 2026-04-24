@@ -1,6 +1,24 @@
-# 语言学写平台
+# 韦林英文词根轰炸
 
-基于 **React + TypeScript + Vite + Tailwind CSS + Framer Motion** 的纯静态站点：文章与个人资料均打包在前端，**不请求任何后端接口**。
+基于 **React + TypeScript + Vite + Tailwind CSS + Framer Motion** 的英语词根学习应用，支持 Web 和 Electron 桌面端。
+
+## ✨ 特性
+
+- 🚀 高性能：优化的 React 组件和动画
+- 🎨 精美 UI：现代化设计，暗色主题
+- ⚡ 快速响应：60fps 流畅体验
+- 🖥️ 跨平台：Web + 桌面应用（macOS/Windows/Linux）
+- 📦 完全 TypeScript 支持
+
+## 🛠️ TypeScript 支持
+
+项目已全面采用 TypeScript，提供：
+
+- ✅ 完整的类型定义
+- ✅ 类型安全的 API
+- ✅ 智能代码补全
+- ✅ 编译时错误检查
+- ✅ 更好的可维护性
 
 ## 本地开发
 
@@ -19,14 +37,32 @@ npm run electron:dev
 
 这将启动 Vite 开发服务器和 Electron 应用。
 
-## 新建文章
+## TypeScript 类型结构
 
-```bash
-npm run new -- "文章标题" "语法"
-npm run new -- --help
+### 核心类型
+
+```typescript
+// 单词项
+interface WordItem {
+  word: string;
+  definition: string;
+  root?: string;
+}
+
+// 词根组
+interface RootGroup {
+  root: string;
+  meaning: string;
+  words: WordItem[];
+}
+
+// 单元信息
+interface RootUnit {
+  id: number;
+  label: string;
+  locked: boolean;
+}
 ```
-
-类别与说明见下文「目录说明」。新增 `src/content/articles/*.md` 后若列表未更新，**重启 dev**。
 
 ## 构建与部署
 
@@ -38,6 +74,16 @@ npm run preview
 ```
 
 Cloudflare Pages：Framework **React (Vite)**，Build **`npm run build`**，输出目录 **`dist`**（不要写成 `/dist`）。
+
+### TypeScript 检查
+
+```bash
+# 仅检查类型
+npx tsc --noEmit
+
+# 构建时自动检查
+npm run build:check
+```
 
 ### Electron 桌面应用构建
 
@@ -81,13 +127,13 @@ APIFOX_OPENAPI_URL="https://your-openapi.json" npm run openapi:sync
 
 ## 目录说明
 
-- `src/mocks/data.ts` — 个人资料 `mockProfile`
-- `src/content/articles/*.md` — 文章正文（由 `loadArticles` 聚合，兼容旧 `.json`）
-- `src/content/article-categories.json` — 类别定义
-- `src/theme/` — 主题与 `ThemeProvider`
-- `src/pages/`、`src/components/` — 页面与组件
+- `src/types/` — TypeScript 类型定义
+- `src/data/` — 数据文件和 JSON 导入
+- `src/lib/` — 工具函数和库
+- `src/pages/` — 页面组件
+- `src/components/` — 可复用组件
 - `electron/` — Electron 主进程和预加载脚本
-- `release/` — Electron 构建输出目录（构建桌面应用时生成）
+- `release/` — Electron 构建输出目录
 
 ## Electron 特性
 
@@ -96,3 +142,16 @@ APIFOX_OPENAPI_URL="https://your-openapi.json" npm run openapi:sync
 - ✅ 原生菜单和快捷键
 - ✅ 安全的上下文隔离
 - ✅ 窗口管理（最小化、最大化、关闭）
+- ✅ 性能优化（60fps 流畅体验）
+
+## 性能优化
+
+项目已应用以下性能优化：
+
+- ✅ React.memo 组件缓存
+- ✅ useMemo 和 useCallback 优化
+- ✅ 动画简化（根据 prefers-reduced-motion）
+- ✅ 代码分割和懒加载
+- ✅ Electron 主进程优化
+
+详见 [ELECTRON_PERFORMANCE.md](./ELECTRON_PERFORMANCE.md)

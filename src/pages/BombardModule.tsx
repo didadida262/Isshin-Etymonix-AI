@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AmbientBackdrop } from '../components/AmbientBackdrop';
-import unite1Data from '../data/unite1.json';
+import { type Unite1DataItem as Unite1Data } from '../data/unit1Roots';
+import unite1DataRaw from '../data/unite1.json';
 
 interface WordItem {
   word: string;
@@ -152,7 +153,14 @@ export function BombardModule({ unitId, words }: BombardModuleProps) {
 
 export function getMockWords(unitId: number): WordItem[] {
   if (unitId === 1) {
-    return unite1Data as WordItem[];
+    // unite1DataRaw 的结构不同，需要转换
+    return unite1DataRaw.flatMap((item: Unite1Data) =>
+      item.words.map((w) => ({
+        word: w.word,
+        definition: w.definition,
+        root: item.root,
+      }))
+    );
   }
   return [];
 }

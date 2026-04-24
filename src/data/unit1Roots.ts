@@ -1,5 +1,16 @@
 import unite1Data from './unite1.json';
 
+// 定义 JSON 数据的类型
+export interface Unite1DataItem {
+  root: string;
+  rootMeaning: string;
+  rootNote: string | null;
+  words: {
+    word: string;
+    definition: string;
+  }[];
+}
+
 export type WordItem = {
   word: string;
   definition: string;
@@ -12,33 +23,16 @@ export type RootGroup = {
   words: WordItem[];
 };
 
-function parseRoot(raw: string): { root: string; meaning: string } {
-  // 兼容全角冒号 和 半角冒号
-  const m = raw.match(/^([^：:]+)[：:](.*)$/);
-  if (m) return { root: m[1].trim(), meaning: m[2].trim() };
-  return { root: raw.trim(), meaning: '' };
-}
-
-const unit1Roots: RootGroup[] = (() => {
-  const rootMap = new Map<string, { meaning: string; words: WordItem[] }>();
-  for (const item of unite1Data) {
-    const { root, meaning } = parseRoot(item.root);
-    const existing = rootMap.get(root);
-    if (existing) {
-      existing.words.push({ word: item.word, definition: item.definition, root });
-    } else {
-      rootMap.set(root, {
-        meaning,
-        words: [{ word: item.word, definition: item.definition, root }],
-      });
-    }
-  }
-  return Array.from(rootMap.entries()).map(([root, { meaning, words }]) => ({
-    root,
-    meaning,
-    words,
-  }));
-})();
+// unite1Data 已经是正确的格式，直接转换类型
+const unit1Roots: RootGroup[] = unite1Data.map((item) => ({
+  root: item.root,
+  meaning: item.rootMeaning,
+  words: item.words.map((w) => ({
+    word: w.word,
+    definition: w.definition,
+    root: item.root,
+  })),
+}));
 
 export default unit1Roots;
 export const UNIT_1_ROOTS = unit1Roots;

@@ -10,8 +10,7 @@ export interface WordItem {
 
 export interface RootGroup {
   root: string;
-  rootMeaning?: string;
-  rootNote?: string;
+  meaning: string;
   words: WordItem[];
 }
 
@@ -47,13 +46,21 @@ export async function loadUnitData(unitId: number): Promise<RootGroup[]> {
     const module = await import(`../data/unite${unitId}.json`);
     const data = module.default;
     
-    // 如果数据已经是 RootGroup 格式（有 root 和 words 字段），直接返回
-    if (Array.isArray(data) && data.length > 0 && 'root' in data[0] && 'words' in data[0]) {
-      return data as RootGroup[];
+    // JSON 文件的格式是：{ root, rootMeaning, rootNote, words: [{word, definition}] }
+    // 转换为 RootGroup 格式：{ root, meaning, words: [{word, definition, root}] }
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map((item: any) => ({
+        root: item.root,
+        meaning: item.rootMeaning,
+        words: item.words.map((w: any) => ({
+          word: w.word,
+          definition: w.definition,
+          root: item.root,
+        })),
+      }));
     }
     
-    // 如果是旧格式（WordItem[]），转换为 RootGroup 格式
-    return groupWordsByRoot(data as WordItem[]);
+    return [];
   } catch (error) {
     console.error(`Failed to load unit ${unitId} data:`, error);
     return [];
@@ -66,7 +73,7 @@ export async function loadUnitData(unitId: number): Promise<RootGroup[]> {
  * @returns RootGroup[] 按词根分组的数据
  */
 export function groupWordsByRoot(words: WordItem[]): RootGroup[] {
-  const rootMap = new Map<string, { rootMeaning: string; words: WordItem[] }>();
+  const rootMap = new Map<string, { meaning: string; words: WordItem[] }>();
   
   for (const item of words) {
     // 解析词根行，兼容全角/半角冒号
@@ -79,15 +86,15 @@ export function groupWordsByRoot(words: WordItem[]): RootGroup[] {
       existing.words.push(item);
     } else {
       rootMap.set(root, {
-        rootMeaning: meaning,
+        meaning,
         words: [item],
       });
     }
   }
   
-  return Array.from(rootMap.entries()).map(([root, { rootMeaning, words }]) => ({
+  return Array.from(rootMap.entries()).map(([root, { meaning, words }]) => ({
     root,
-    rootMeaning,
+    meaning,
     words,
   }));
 }
