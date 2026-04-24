@@ -1,0 +1,94 @@
+[
+  {
+    "root": "MANIA",
+    "rootMeaning": "madness",
+    "rootNote": "a mental illness",
+    "words": [
+      {
+        "word": "kleptomaniac",
+        "definition": "a mental illness in which a person has a strong desire to steal things."
+      },
+      {
+        "word": "dipsomaniac",
+        "definition": "a person who has strong desire to drink.'dipso-' means 'thirst'"
+      },
+      {
+        "word": "megalomaniac",
+        "definition": "a mental disorder marked by feelings of great personal power and importance"
+      },
+      {
+        "word": "egomaniac",
+        "definition": "someone who is extremely self-centered and ignores the problems and concerns of others"
+      }
+    ]
+  },
+  {
+    "root": "PSYCH",
+    "rootMeaning": "breath",
+    "rootNote": "soul, life",
+    "words": [
+      {
+        "word": "psyche",
+        "definition": "soul, personality, mind."
+      },
+      {
+        "word": "psychedelic",
+        "definition": "of or relating to drug that produces abnormal and often extreme mental effects"
+      },
+      {
+        "word": "psychosomatic",
+        "definition": "caused by mental or emotional problems rather than by physical illness"
+      },
+      {
+        "word": "psychotherapist",
+        "definition": "/ psychiatrist"
+      }
+    ]
+  },
+  {
+    "root": "CEPT",
+    "rootMeaning": "to take",
+    "rootNote": "to seize",
+    "words": [
+      {
+        "word": "reception",
+        "definition": "the act of receiving; a social gathering where guests are formally welcomed"
+      },
+      {
+        "word": "intercept",
+        "definition": "to stop, or interrupt"
+      },
+      {
+        "word": "perceptible",
+        "definition": "noticeable or able to be felt by the senses"
+      },
+      {
+        "word": "susceptible",
+        "definition": "open to some influence; able to be submitted to an action or process"
+      }
+    ]
+  },
+  {
+    "root": "FIN",
+    "rootMeaning": "end or boundary",
+    "rootNote": null,
+    "words": [
+      {
+        "word": "confine",
+        "definition": "to keep someone or something within limits; to hold someone in a location"
+      },
+      {
+        "word": "definitive",
+        "definition": "specifying perfectly or precisely"
+      },
+      {
+        "word": "finite",
+        "definition": "having definite limits  | | infinite"
+      },
+      {
+        "word": "infinitesimal",
+        "definition": "extremely small"
+      }
+    ]
+  }
+]

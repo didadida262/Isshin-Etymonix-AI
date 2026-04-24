@@ -11,6 +11,11 @@ const GRID_COLS = 4;
 const UNIT_COUNT = ROOT_UNITS.length;
 const GRID_ROWS = Math.ceil(UNIT_COUNT / GRID_COLS);
 
+// 传递 unitId 给 BombardPage
+interface RootBombardPageProps {
+  onStartBombard: (unitId: number) => void;
+}
+
 /** 未测量前用估算值，避免首帧错位过大 */
 const FALLBACK_CELL = { w: 156, h: 134 };
 

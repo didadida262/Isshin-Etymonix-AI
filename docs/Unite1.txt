@@ -15,8 +15,8 @@ AM: meaning "to love"
 BELL: meaning 'war',Bellona is the roman godness of war, her husband was 'mars',who is also the godness of war in roman
 - antebellum: before war
 - bellicose: aggressive,describe nation or nation's leaders
-- belligerence:His speech was full of belligerence
-- rebellion: a rebellion against the government or the law, especially by a group of people who are not part of the government
+- belligerence: His speech was full of belligerence
+- rebellion：you know
 
 PAC: meaning 'peace'
 - pacify: 安抚情绪。可以是宝宝，也可以是人民。 use army to pacify people
@@ -30,7 +30,7 @@ PAC: meaning 'peace'
 CRIM: fault or crime
 - criminology: study of crime
 - decriminalize: 非罪化
-- incriminate: you know
+- incriminate : you know
 - recrimination：There was no anger, no recrimination
 
 PROB：prove or proof

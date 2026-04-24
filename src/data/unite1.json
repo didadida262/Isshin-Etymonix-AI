@@ -1,162 +1,186 @@
 [
   {
-    "word": "benediction",
-    "definition": "well + speaking",
-    "root": "BENE：meaning “well”"
+    "root": "BENE",
+    "rootMeaning": "well",
+    "rootNote": null,
+    "words": [
+      {
+        "word": "benediction",
+        "definition": "well + speaking"
+      },
+      {
+        "word": "benefactor",
+        "definition": "someone who helps another person or groups.especially by giving money"
+      },
+      {
+        "word": "beneficiary",
+        "definition": "a person or organization who will get money or property when someone die"
+      },
+      {
+        "word": "benevolence",
+        "definition": "kindness"
+      }
+    ]
   },
   {
-    "word": "benefactor",
-    "definition": "someone who helps another person or groups.especially by giving money",
-    "root": "BENE：meaning “well”"
+    "root": "AM",
+    "rootMeaning": "to love",
+    "rootNote": null,
+    "words": [
+      {
+        "word": "amicable",
+        "definition": "friendly,peaceful.describe relations between group or nations"
+      },
+      {
+        "word": "enamored",
+        "definition": "be fascinated"
+      },
+      {
+        "word": "amorous",
+        "definition": "describe a couple, or another"
+      },
+      {
+        "word": "paramour",
+        "definition": "a lover, often secret,not allowed by law or custom"
+      }
+    ]
   },
   {
-    "word": "beneficiary",
-    "definition": "a person or organization who will get money or property when someone die",
-    "root": "BENE：meaning “well”"
+    "root": "BELL",
+    "rootMeaning": "war",
+    "rootNote": "Bellona is the roman godness of war, her husband was mars,who is also the godness of war in roman",
+    "words": [
+      {
+        "word": "antebellum",
+        "definition": "before war"
+      },
+      {
+        "word": "bellicose",
+        "definition": "aggressive,describe nation or nation's leaders"
+      },
+      {
+        "word": "belligerence",
+        "definition": "His speech was full of belligerence"
+      },
+      {
+        "word": "rebellion",
+        "definition": "you know"
+      }
+    ]
   },
   {
-    "word": "benevolence",
-    "definition": "kindness",
-    "root": "BENE：meaning “well”"
+    "root": "PAC",
+    "rootMeaning": "peace",
+    "rootNote": null,
+    "words": [
+      {
+        "word": "pacify",
+        "definition": "安抚情绪。可以是宝宝，也可以是人民。 use army to pacify people"
+      },
+      {
+        "word": "pacifist",
+        "definition": "a person oppose any war"
+      },
+      {
+        "word": "pact",
+        "definition": "treaty,agreement"
+      },
+      {
+        "word": "pace",
+        "definition": "slow pace；He paced up and down；contrary to the opinion of"
+      }
+    ]
   },
   {
-    "word": "amicable",
-    "definition": "friendly,peaceful.describe relations between group or nations",
-    "root": "AM: meaning \"to love\""
+    "root": "CRIM",
+    "rootMeaning": "fault or crime",
+    "rootNote": null,
+    "words": [
+      {
+        "word": "criminology",
+        "definition": "study of crime"
+      },
+      {
+        "word": "decriminalize",
+        "definition": "非罪化"
+      },
+      {
+        "word": "incriminate",
+        "definition": "you know"
+      },
+      {
+        "word": "recrimination",
+        "definition": "There was no anger, no recrimination"
+      }
+    ]
   },
   {
-    "word": "enamored",
-    "definition": "be fascinated",
-    "root": "AM: meaning \"to love\""
+    "root": "PROB",
+    "rootMeaning": "prove or proof",
+    "rootNote": null,
+    "words": [
+      {
+        "word": "approbation",
+        "definition": "a formal or official act of approving"
+      },
+      {
+        "word": "probate",
+        "definition": "遗产诉讼"
+      },
+      {
+        "word": "probity",
+        "definition": "absolute honesty"
+      },
+      {
+        "word": "reprobate",
+        "definition": "a person of thoroughly bad character"
+      }
+    ]
   },
   {
-    "word": "amorous",
-    "definition": "describe a couple, or another",
-    "root": "AM: meaning \"to love\""
+    "root": "GRAV",
+    "rootMeaning": "heavy",
+    "rootNote": "weighty",
+    "words": [
+      {
+        "word": "grave",
+        "definition": "require serious thought or concern"
+      },
+      {
+        "word": "gravitas",
+        "definition": "great seriousness"
+      },
+      {
+        "word": "gravitate",
+        "definition": "attract"
+      },
+      {
+        "word": "aggravate",
+        "definition": "to make more serious"
+      }
+    ]
   },
   {
-    "word": "paramour",
-    "definition": "a lover, often secret,not allowed by law or custom",
-    "root": "AM: meaning \"to love\""
-  },
-  {
-    "word": "antebellum",
-    "definition": "before war",
-    "root": "BELL: meaning 'war',Bellona is the roman godness of war, her husband was 'mars',who is also the godness of war in roman"
-  },
-  {
-    "word": "bellicose",
-    "definition": "aggressive,describe nation or nation's leaders",
-    "root": "BELL: meaning 'war',Bellona is the roman godness of war, her husband was 'mars',who is also the godness of war in roman"
-  },
-  {
-    "word": "belligerence",
-    "definition": "His speech was full of belligerence",
-    "root": "BELL: meaning 'war',Bellona is the roman godness of war, her husband was 'mars',who is also the godness of war in roman"
-  },
-  {
-    "word": "rebellion",
-    "definition": "a rebellion against the government or the law, especially by a group of people who are not part of the government",
-    "root": "BELL: meaning 'war',Bellona is the roman godness of war, her husband was 'mars',who is also the godness of war in roman"
-  },
-  {
-    "word": "pacify",
-    "definition": "安抚情绪。可以是宝宝，也可以是人民。 use army to pacify people",
-    "root": "PAC: meaning 'peace'"
-  },
-  {
-    "word": "pacifist",
-    "definition": "a person oppose any war",
-    "root": "PAC: meaning 'peace'"
-  },
-  {
-    "word": "pact",
-    "definition": "treaty,agreement",
-    "root": "PAC: meaning 'peace'"
-  },
-  {
-    "word": "pace",
-    "definition": "slow pace；He paced up and down；contrary to the opinion of",
-    "root": "PAC: meaning 'peace'"
-  },
-  {
-    "word": "criminology",
-    "definition": "study of crime",
-    "root": "CRIM: fault or crime"
-  },
-  {
-    "word": "decriminalize",
-    "definition": "非罪化",
-    "root": "CRIM: fault or crime"
-  },
-  {
-    "word": "incriminate",
-    "definition": "you know",
-    "root": "CRIM: fault or crime"
-  },
-  {
-    "word": "recrimination",
-    "definition": "There was no anger, no recrimination",
-    "root": "CRIM: fault or crime"
-  },
-  {
-    "word": "approbation",
-    "definition": "a formal or official act of approving",
-    "root": "PROB：prove or proof"
-  },
-  {
-    "word": "probate",
-    "definition": "遗产诉讼",
-    "root": "PROB：prove or proof"
-  },
-  {
-    "word": "probity",
-    "definition": "absolute honesty",
-    "root": "PROB：prove or proof"
-  },
-  {
-    "word": "reprobate",
-    "definition": "a person of thoroughly bad character",
-    "root": "PROB：prove or proof"
-  },
-  {
-    "word": "grave",
-    "definition": "require serious thought or concern",
-    "root": "GRAV: meaning heavy,weighty"
-  },
-  {
-    "word": "gravitas",
-    "definition": "great seriousness",
-    "root": "GRAV: meaning heavy,weighty"
-  },
-  {
-    "word": "gravitate",
-    "definition": "attract",
-    "root": "GRAV: meaning heavy,weighty"
-  },
-  {
-    "word": "aggravate",
-    "definition": "to make more serious",
-    "root": "GRAV: meaning heavy,weighty"
-  },
-  {
-    "word": "alleviate",
-    "definition": "to lighten, especially physical or mental suffering",
-    "root": "LEV: meaning light"
-  },
-  {
-    "word": "elevation",
-    "definition": "the height of place,elevate/upgrade",
-    "root": "LEV: meaning light"
-  },
-  {
-    "word": "cantilever",
-    "definition": "cantilever balcony",
-    "root": "LEV: meaning light"
-  },
-  {
-    "word": "levity",
-    "definition": "refers to lightness in manner",
-    "root": "LEV: meaning light"
+    "root": "LEV",
+    "rootMeaning": "light",
+    "rootNote": null,
+    "words": [
+      {
+        "word": "alleviate",
+        "definition": "to lighten, especially physical or mental suffering"
+      },
+      {
+        "word": "elevation",
+        "definition": "the height of place,elevate/upgrade"
+      },
+      {
+        "word": "cantilever",
+        "definition": "cantilever balcony"
+      },
+      {
+        "word": "levity",
+        "definition": "refers to lightness in manner"
+      }
+    ]
   }
 ]

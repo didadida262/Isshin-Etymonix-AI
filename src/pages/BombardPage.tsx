@@ -1,10 +1,9 @@
 import { faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '../lib/cn';
-import { UNIT_1_ROOTS } from '../data/unit1Roots';
-import type { RootGroup, WordItem } from '../data/unit1Roots';
+import { loadUnitData, groupWordsByRoot, type RootGroup, type WordItem } from '../lib/loadUnitData';
 
 /* ── 统一背面设计 token ── */
 const BACK_CLASSES = {
@@ -29,15 +28,22 @@ interface FlatCard {
   root: RootGroup;
   word: WordItem;
 }
-const ALL_CARDS: FlatCard[] = UNIT_1_ROOTS.flatMap((root, ri) =>
-  root.words.map((word, wi) => ({ rootIdx: ri, wordIdx: wi, root, word })),
-);
+
+// 使用 unitData 动态生成卡片列表
+const useAllCards = (unitData: RootGroup[]): FlatCard[] => {
+  return unitData.flatMap((root, ri) =>
+    root.words.map((word, wi) => ({ rootIdx: ri, wordIdx: wi, root, word })),
+  );
+};
 
 /* ── 工具 ── */
-function pickRandom(exclude?: { rootIdx: number; wordIdx: number }): FlatCard {
+function pickRandom(cards: FlatCard[], exclude?: { rootIdx: number; wordIdx: number }): FlatCard {
+  if (cards.length === 0) {
+    throw new Error('No cards to pick');
+  }
   let card: FlatCard;
   do {
-    card = ALL_CARDS[Math.floor(Math.random() * ALL_CARDS.length)];
+    card = cards[Math.floor(Math.random() * cards.length)];
   } while (
     exclude &&
     card.rootIdx === exclude.rootIdx &&
@@ -49,8 +55,51 @@ function pickRandom(exclude?: { rootIdx: number; wordIdx: number }): FlatCard {
 /* ════════════════════════════════════════
    页面主体
    ════════════════════════════════════════ */
-export function BombardPage({ onBack }: { onBack: () => void }) {
+export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: number }) {
   const reduceMotion = useReducedMotion();
+  
+  // 动态加载单元数据
+  const [unitData, setUnitData] = useState<RootGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // 使用 hook 获取所有卡片
+  const allCards = useAllCards(unitData);
+
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const words = await loadUnitData(unitId);
+        if (mounted) {
+          const grouped = groupWordsByRoot(words);
+          setUnitData(grouped);
+          
+          if (words.length === 0) {
+            setError(`Unit ${unitId} 数据暂未找到，请确保 docs 文件夹中有对应的 Unite${unitId}.pages 文件并已转换为 JSON`);
+          }
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(`加载 Unit ${unitId} 数据失败：${err instanceof Error ? err.message : '未知错误'}`);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [unitId]);
 
   /* 翻转状态：rootIdx → wordIdx → true=正面 / false=背面 */
   const [flipped, setFlipped] = useState<Record<number, Record<number, boolean>>>({});
@@ -104,6 +153,8 @@ export function BombardPage({ onBack }: { onBack: () => void }) {
   /* ── 进入下一轮 ── */
   const nextRound = useCallback(
     async (prev: FlatCard | null) => {
+      if (allCards.length === 0) return;
+      
       // 先翻回上一张
       if (prev) flipClose(prev);
 
@@ -111,36 +162,40 @@ export function BombardPage({ onBack }: { onBack: () => void }) {
       await new Promise<void>((r) => setTimeout(r, FLIP_CLOSE_MS + 80));
 
       // 随机抽卡
-      const card = pickRandom(prev ?? undefined);
-      setCurrent(card);
+      try {
+        const card = pickRandom(allCards, prev ?? undefined);
+        setCurrent(card);
 
-      // 滚动到对应词根
-      await scrollToRoot(card.rootIdx);
+        // 滚动到对应词根
+        await scrollToRoot(card.rootIdx);
 
-      // 翻开
-      flipOpen(card);
+        // 翻开
+        flipOpen(card);
 
-      // 开始倒计时
-      setCountdown(REVEAL_SECONDS);
-      let sec = REVEAL_SECONDS;
-      clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        sec -= 1;
-        if (sec <= 0) {
-          clearInterval(timerRef.current);
-          setCountdown(0);
-        } else {
-          setCountdown(sec);
-        }
-      }, 1000);
+        // 开始倒计时
+        setCountdown(REVEAL_SECONDS);
+        let sec = REVEAL_SECONDS;
+        clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+          sec -= 1;
+          if (sec <= 0) {
+            clearInterval(timerRef.current);
+            setCountdown(0);
+          } else {
+            setCountdown(sec);
+          }
+        }, 1000);
 
-      // REVEAL_SECONDS 后进入下一轮
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => {
-        nextRound(card);
-      }, REVEAL_SECONDS * 1000);
+        // REVEAL_SECONDS 后进入下一轮
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
+          nextRound(card);
+        }, REVEAL_SECONDS * 1000);
+      } catch (err) {
+        console.error('Failed to pick card:', err);
+      }
     },
-    [flipClose, flipOpen, scrollToRoot],
+    [allCards, flipClose, flipOpen, scrollToRoot],
   );
 
   /* ── 开始 / 停止 ── */
@@ -171,7 +226,7 @@ export function BombardPage({ onBack }: { onBack: () => void }) {
       {/* ── 顶栏 ── */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/[0.08] bg-zinc-950/70 px-6 py-3 backdrop-blur-xl">
         <h1 className="font-display text-lg font-semibold tracking-tight text-white">
-          Unit 1 · 词根轰炸
+          Unit {unitId} · 词根轰炸
         </h1>
         <div className="flex items-center gap-4">
           {/* 返回 */}
@@ -202,6 +257,7 @@ export function BombardPage({ onBack }: { onBack: () => void }) {
           <button
             type="button"
             onClick={toggleRunning}
+            disabled={loading || allCards.length === 0}
             className={`
               inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors
               ${
@@ -209,66 +265,102 @@ export function BombardPage({ onBack }: { onBack: () => void }) {
                   ? 'border-red-500/40 bg-red-950/50 text-red-300 hover:bg-red-900/50'
                   : 'border-emerald-500/40 bg-emerald-950/50 text-emerald-300 hover:bg-emerald-900/50'
               }
+              ${(loading || allCards.length === 0) ? ' opacity-50 cursor-not-allowed' : ''}
             `}
           >
             <FontAwesomeIcon icon={running ? faStop : faPlay} className="h-3.5 w-3.5" />
-            {running ? '停止' : '开始'}
+            {loading ? '加载中...' : running ? '停止' : '开始'}
           </button>
         </div>
       </header>
 
-      {/* ── 词根列表 ── */}
+      {/* ── 主体内容 ── */}
       <main className="mx-auto max-w-6xl space-y-10 px-4 py-8 md:px-6">
-        {UNIT_1_ROOTS.map((root, ri) => (
-          <div
-            key={root.root}
-            ref={(el) => {
-              sectionRefs.current[ri] = el;
-            }}
-            className="scroll-mt-24"
-          >
-            {/* 词根标题 */}
-            <div className="mb-4 group relative flex items-center gap-3">
-              {/* 词根 - 突出显示 */}
-              <span className="relative flex items-center">
-                {/* 发光背景 */}
-                <span className="absolute -inset-1.5 rounded-md bg-gradient-to-r from-cyan-500/20 to-violet-500/20 blur-sm transition-opacity opacity-50 group-hover:opacity-100" />
-                {/* 词根文字 */}
-                <span className="relative font-display text-base font-bold tracking-widest bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
-                  {root.root}
-                </span>
-              </span>
-              
-              {/* 分隔线 */}
-              <div className="h-4 w-px bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-              
-              {/* 释义 - hover 时显示 */}
-              <span className="text-sm text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
-                {root.meaning}
-              </span>
-            </div>
-
-            {/* 2×2 卡牌网格 */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {root.words.map((word, wi) => {
-                const isFlipped = !!flipped[ri]?.[wi];
-                const isCurrent =
-                  current?.rootIdx === ri && current?.wordIdx === wi;
-
-                return (
-                  <FlipCard
-                    key={wi}
-                    word={word}
-                    rootLabel={root.root}
-                    flipped={isFlipped}
-                    highlighted={isCurrent}
-                    reduceMotion={!!reduceMotion}
-                  />
-                );
-              })}
+        {/* 加载状态 */}
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-cyan-500/30 border-t-cyan-500" />
+              <p className="text-zinc-400">正在加载 Unit {unitId} 数据...</p>
             </div>
           </div>
-        ))}
+        )}
+
+        {/* 错误状态 */}
+        {error && (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4 max-w-md text-center">
+              <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-semibold text-red-400">加载失败</h3>
+              <p className="text-zinc-400 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* 空数据状态 */}
+        {!loading && !error && allCards.length === 0 && (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-zinc-400">Unit {unitId} 暂无单词数据</p>
+              <p className="text-zinc-500 text-sm">请运行 `npm run gen` 转换 Pages 文件</p>
+            </div>
+          </div>
+        )}
+
+        {/* 词根列表 */}
+        {!loading && !error && allCards.length > 0 && (
+          unitData.map((root, ri) => (
+            <div
+              key={root.root}
+              ref={(el) => {
+                sectionRefs.current[ri] = el;
+              }}
+              className="scroll-mt-24"
+            >
+              {/* 词根标题 */}
+              <div className="mb-4 group relative flex items-center gap-3">
+                {/* 词根 - 突出显示 */}
+                <span className="relative flex items-center">
+                  {/* 发光背景 */}
+                  <span className="absolute -inset-1.5 rounded-md bg-gradient-to-r from-cyan-500/20 to-violet-500/20 blur-sm transition-opacity opacity-50 group-hover:opacity-100" />
+                  {/* 词根文字 */}
+                  <span className="relative font-display text-base font-bold tracking-widest bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+                    {root.root}
+                  </span>
+                </span>
+                
+                {/* 分隔线 */}
+                <div className="h-4 w-px bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                
+                {/* 释义 - hover 时显示 */}
+                <span className="text-sm text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
+                  {root.meaning}
+                </span>
+              </div>
+
+              {/* 2×2 卡牌网格 */}
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {root.words.map((word, wi) => {
+                  const isFlipped = !!flipped[ri]?.[wi];
+                  const isCurrent =
+                    current?.rootIdx === ri && current?.wordIdx === wi;
+
+                  return (
+                    <FlipCard
+                      key={wi}
+                      word={word}
+                      flipped={isFlipped}
+                      highlighted={isCurrent}
+                      reduceMotion={!!reduceMotion}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        )}
       </main>
     </div>
   );
@@ -279,13 +371,11 @@ export function BombardPage({ onBack }: { onBack: () => void }) {
    ════════════════════════════════════════ */
 function FlipCard({
   word,
-  rootLabel,
   flipped,
   highlighted,
   reduceMotion,
 }: {
   word: WordItem;
-  rootLabel: string;
   flipped: boolean;
   highlighted: boolean;
   reduceMotion: boolean;

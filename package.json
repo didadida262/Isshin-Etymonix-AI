@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "gen": "node scripts/parseWords.js",
-    "convert": "node convert-txt-to-json.js"
+    "gen": "node convert-pages-to-json.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
