@@ -1,0 +1,12 @@
+services:
+  whisper:
+    build:
+      context: ./server
+    ports:
+      - "8000:8000"
+    volumes:
+      # 将宿主机已下载的模型目录挂载进容器
+      - ~/Desktop/work/whisper-large-v3-turbo:/models/whisper-large-v3-turbo:ro
+    environment:
+      - WHISPER_MODEL_PATH=/models/whisper-large-v3-turbo
+    restart: unless-stopped

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { VoiceCard } from './components/VoiceCard';
 import { BombardPage } from './pages/BombardPage';
 import { RootBombardPage } from './pages/RootBombardPage';
 
@@ -38,8 +39,18 @@ export default function App() {
   }, []);
 
   if (page === 'bombard') {
-    return <BombardPage onBack={() => navigateTo('home')} unitId={unitId} />;
+    return (
+      <>
+        <BombardPage onBack={() => navigateTo('home')} unitId={unitId} />
+        <VoiceCard />
+      </>
+    );
   }
 
-  return <RootBombardPage onStartBombard={(id) => { setUnitId(id); navigateTo('bombard', id); }} />;
+  return (
+    <>
+      <RootBombardPage onStartBombard={(id) => { setUnitId(id); navigateTo('bombard', id); }} />
+      <VoiceCard />
+    </>
+  );
 }
