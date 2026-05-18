@@ -1,157 +1,84 @@
 # 韦林英文词根轰炸
 
-基于 **React + TypeScript + Vite + Tailwind CSS + Framer Motion** 的英语词根学习应用，支持 Web 和 Electron 桌面端。
+基于 **React + TypeScript + Vite + Tailwind CSS + Framer Motion** 的英语词根学习应用，右下角集成离线语音识别浮动卡片。
 
 ## ✨ 特性
 
-- 🚀 高性能：优化的 React 组件和动画
 - 🎨 精美 UI：现代化设计，暗色主题
-- ⚡ 快速响应：60fps 流畅体验
-- 🖥️ 跨平台：Web + 桌面应用（macOS/Windows/Linux）
+- ⚡ 60fps 流畅动画体验
 - 📦 完全 TypeScript 支持
+- 🎙️ 离线语音识别（Whisper large-v3-turbo，MPS 加速）
 
-## 🛠️ TypeScript 支持
+## 启动方式
 
-项目已全面采用 TypeScript，提供：
+项目分两个服务，需分别在两个终端启动。
 
-- ✅ 完整的类型定义
-- ✅ 类型安全的 API
-- ✅ 智能代码补全
-- ✅ 编译时错误检查
-- ✅ 更好的可维护性
-
-## 本地开发
-
-### Web 开发
+### 终端 1 — Python 语音识别后端
 
 ```bash
-npm install
-npm run dev
+cd server
+source venv/bin/activate
+python3 main.py
 ```
 
-### Electron 桌面应用开发
+看到以下输出即表示就绪：
+
+```
+[Whisper] 推理设备: mps
+[Whisper] 模型加载完成 ✓
+INFO: Uvicorn running on http://0.0.0.0:8000
+```
+
+> **首次使用须知**
+> 1. 需先安装 ffmpeg：`brew install ffmpeg`
+> 2. 需先创建虚拟环境并安装依赖：
+>    ```bash
+>    cd server
+>    python3 -m venv venv
+>    source venv/bin/activate
+>    pip3 install -r requirements.txt
+>    ```
+
+### 终端 2 — 前端
 
 ```bash
-npm run electron:dev
+yarn dev
 ```
 
-这将启动 Vite 开发服务器和 Electron 应用。
+浏览器打开 `http://localhost:5173`，页面右下角语音识别卡片会自动请求麦克风权限并开始持续监听，说话停顿后自动识别并显示文字。
 
-## TypeScript 类型结构
+## 目录结构
 
-### 核心类型
-
-```typescript
-// 单词项
-interface WordItem {
-  word: string;
-  definition: string;
-  root?: string;
-}
-
-// 词根组
-interface RootGroup {
-  root: string;
-  meaning: string;
-  words: WordItem[];
-}
-
-// 单元信息
-interface RootUnit {
-  id: number;
-  label: string;
-  locked: boolean;
-}
+```
+├── src/
+│   ├── components/
+│   │   └── VoiceCard.tsx     # 语音识别浮动卡片
+│   ├── pages/                # 页面组件
+│   ├── data/                 # 词根数据
+│   └── lib/                  # 工具函数
+├── server/
+│   ├── main.py               # FastAPI + Whisper 后端
+│   ├── requirements.txt      # Python 依赖
+│   └── venv/                 # Python 虚拟环境（本地，不提交）
+└── docker-compose.yml        # 可选：Docker 启动后端
 ```
 
-## 构建与部署
+## 语音识别模型
 
-### Web 构建
+- 模型：`whisper-large-v3-turbo`（本地 HuggingFace 格式）
+- 路径：`~/Desktop/work/whisper-large-v3-turbo`
+- 推理设备：Apple M 系列芯片自动启用 MPS 加速
+
+切换模型路径：
 
 ```bash
-npm run build
-npm run preview
+WHISPER_MODEL_PATH=/your/model/path python3 main.py
 ```
 
-Cloudflare Pages：Framework **React (Vite)**，Build **`npm run build`**，输出目录 **`dist`**（不要写成 `/dist`）。
-
-### TypeScript 检查
+## 构建
 
 ```bash
-# 仅检查类型
-npx tsc --noEmit
-
-# 构建时自动检查
-npm run build:check
+yarn build        # 构建前端
+yarn build:check  # TypeScript 类型检查
+yarn preview      # 预览构建产物
 ```
-
-### Electron 桌面应用构建
-
-#### macOS
-
-```bash
-npm run electron:build:mac
-```
-
-输出文件在 `release/` 目录，包含 `.dmg` 和 `.zip` 文件。
-
-#### Windows
-
-```bash
-npm run electron:build:win
-```
-
-输出文件在 `release/` 目录，包含 `.exe` 安装包和便携版。
-
-#### Linux
-
-```bash
-npm run electron:build:linux
-```
-
-输出文件在 `release/` 目录，包含 `.AppImage` 和 `.deb` 文件。
-
-#### 全平台构建
-
-```bash
-npm run electron:build
-```
-
-## Apifox / OpenAPI（可选）
-
-仅在你需要为**其它服务**生成类型时使用：
-
-```bash
-APIFOX_OPENAPI_URL="https://your-openapi.json" npm run openapi:sync
-```
-
-## 目录说明
-
-- `src/types/` — TypeScript 类型定义
-- `src/data/` — 数据文件和 JSON 导入
-- `src/lib/` — 工具函数和库
-- `src/pages/` — 页面组件
-- `src/components/` — 可复用组件
-- `electron/` — Electron 主进程和预加载脚本
-- `release/` — Electron 构建输出目录
-
-## Electron 特性
-
-- ✅ 跨平台支持（macOS、Windows、Linux）
-- ✅ 自动更新支持（可配置）
-- ✅ 原生菜单和快捷键
-- ✅ 安全的上下文隔离
-- ✅ 窗口管理（最小化、最大化、关闭）
-- ✅ 性能优化（60fps 流畅体验）
-
-## 性能优化
-
-项目已应用以下性能优化：
-
-- ✅ React.memo 组件缓存
-- ✅ useMemo 和 useCallback 优化
-- ✅ 动画简化（根据 prefers-reduced-motion）
-- ✅ 代码分割和懒加载
-- ✅ Electron 主进程优化
-
-详见 [ELECTRON_PERFORMANCE.md](./ELECTRON_PERFORMANCE.md)
