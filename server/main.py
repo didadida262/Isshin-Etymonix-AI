@@ -1,10 +1,12 @@
+import json
 from typing import Any
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
-from agent import run_chat
+from agent import run_chat, stream_chat
 from agent.schema import ChatRequest, ChatResponse
 
 MODELS_API_URL = "https://aiplatform.njsrd.com/nexus/api/api-keys/models"
@@ -74,15 +76,51 @@ async def list_models(api_key: str = Query(..., description="API Key")):
         raise HTTPException(status_code=502, detail=f"获取模型列表失败: {e}") from e
 
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
-    """经 AI Agent 调用大模型对话。"""
+def _validate_chat_request(req: ChatRequest) -> None:
     if not req.api_key.strip():
         raise HTTPException(status_code=400, detail="api_key 不能为空")
     if not req.model.strip():
         raise HTTPException(status_code=400, detail="model 不能为空")
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="message 不能为空")
+
+
+@app.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    """SSE 流式对话。"""
+    _validate_chat_request(req)
+
+    def event_generator():
+        try:
+            for delta in stream_chat(
+                message=req.message.strip(),
+                history=req.history,
+                base_url=req.base_url.strip() or "https://aiplatform.njsrd.com/llm/v1",
+                api_key=req.api_key.strip(),
+                model=req.model.strip(),
+            ):
+                payload = json.dumps({"content": delta}, ensure_ascii=False)
+                yield f"data: {payload}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            payload = json.dumps({"error": str(e)}, ensure_ascii=False)
+            yield f"data: {payload}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(req: ChatRequest):
+    """经 AI Agent 调用大模型对话。"""
+    _validate_chat_request(req)
 
     try:
         reply = run_chat(

@@ -18,7 +18,8 @@ python main.py
 |------|------|------|
 | GET | `/health` | 健康检查 |
 | GET | `/models?api_key=...` | 代理获取可用模型列表 |
-| POST | `/chat` | 对话（body 含 message、base_url、api_key、model、history） |
+| POST | `/chat/stream` | SSE 流式对话（推荐） |
+| POST | `/chat` | 非流式对话（一次性返回） |
 
 ### POST /chat 示例
 

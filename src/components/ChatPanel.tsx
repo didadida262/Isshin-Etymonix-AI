@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLlmSettings } from '../context/LlmSettingsContext';
-import { fetchModels, sendChat, type ChatMessagePayload } from '../lib/api';
+import { fetchModels, sendChatStream, type ChatMessagePayload } from '../lib/api';
 
 const POS_STORAGE_KEY = 'chat-panel-position';
 const VIEWPORT_MARGIN = 20;
@@ -179,19 +179,32 @@ export function ChatPanel() {
       content: m.content,
     }));
 
+    const assistantId = ++idCounter;
+    setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
+
     try {
-      const reply = await sendChat(text, history, settings);
-      setMessages((prev) => [
-        ...prev,
-        { id: ++idCounter, role: 'assistant', content: reply || '（无回复内容）' },
-      ]);
+      await sendChatStream(text, history, settings, (delta) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, content: m.content + delta } : m
+          )
+        );
+      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId && !m.content.trim()
+            ? { ...m, content: '（无回复内容）' }
+            : m
+        )
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : '请求失败';
       setError(msg);
-      setMessages((prev) => [
-        ...prev,
-        { id: ++idCounter, role: 'assistant', content: `错误：${msg}` },
-      ]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId ? { ...m, content: `错误：${msg}` } : m
+        )
+      );
     } finally {
       setLoading(false);
       textareaRef.current?.focus();
@@ -249,7 +262,7 @@ export function ChatPanel() {
               className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
               style={{ background: loading ? 'rgba(168,85,247,0.9)' : 'rgba(99,102,241,0.9)' }}
             />
-            <span className="truncate text-xs font-medium text-white/80">AI 助手</span>
+            <span className="truncate text-xs font-medium text-white/80">判官</span>
           </div>
           {!collapsed && (
             <select
@@ -301,7 +314,7 @@ export function ChatPanel() {
               >
                 {messages.length === 0 && !loading && (
                   <p className="py-6 text-center text-xs text-white/25">
-                    向 AI 提问词根、单词或英语学习相关问题
+                    向判官提问词根、单词或英语学习相关问题
                   </p>
                 )}
                 {messages.map((msg) => (
@@ -327,17 +340,20 @@ export function ChatPanel() {
                     </div>
                   </div>
                 ))}
-                {loading && (
-                  <div className="flex justify-start">
-                    <div
-                      className="flex items-center gap-2 rounded-2xl px-3 py-2 text-xs text-white/40"
-                      style={{ background: 'rgba(255,255,255,0.06)' }}
-                    >
-                      <FontAwesomeIcon icon={faSpinner} className="animate-spin text-indigo-400" />
-                      思考中...
+                {loading &&
+                  (messages.length === 0 ||
+                    messages[messages.length - 1]?.role !== 'assistant' ||
+                    !messages[messages.length - 1]?.content) && (
+                    <div className="flex justify-start">
+                      <div
+                        className="flex items-center gap-2 rounded-2xl px-3 py-2 text-xs text-white/40"
+                        style={{ background: 'rgba(255,255,255,0.06)' }}
+                      >
+                        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-indigo-400" />
+                        思考中...
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
 
               {error && (

@@ -23,6 +23,8 @@ const BACK_CLASSES = {
 const FLIP_OPEN_MS = 480;
 const FLIP_CLOSE_MS = 380;
 const REVEAL_SECONDS = 30;
+/** 卡片翻开后，延迟多久显示释义 */
+const DEFINITION_REVEAL_MS = 20_000;
 
 /* ── 全量 word 索引（用于随机抽取） ── */
 interface FlatCard {
@@ -398,7 +400,7 @@ const FlipCard = React.memo(({
   const openMs = reduceMotion ? 0 : FLIP_OPEN_MS;
   const closeMs = reduceMotion ? 0 : FLIP_CLOSE_MS;
 
-  /* 翻开 5s 后才显示释义 - 优化：使用 useMemo */
+  /* 翻开 20s 后才显示释义 */
   const [showDef, setShowDef] = useState(false);
   
   useEffect(() => {
@@ -406,7 +408,7 @@ const FlipCard = React.memo(({
       setShowDef(false);
       return;
     }
-    const timer = setTimeout(() => setShowDef(true), 5000);
+    const timer = setTimeout(() => setShowDef(true), DEFINITION_REVEAL_MS);
     return () => clearTimeout(timer);
   }, [flipped]);
   
@@ -484,7 +486,7 @@ const FlipCard = React.memo(({
             {word.word}
           </span>
           <div className="h-px w-12 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
-          {/* 拆解释义 - 翻开后 5s 淡入 */}
+          {/* 拆解释义 - 翻开后 20s 淡入 */}
           <motion.span
             className="max-w-[85%] text-center text-sm leading-relaxed text-zinc-300"
             initial={{ opacity: 0, y: 4 }}

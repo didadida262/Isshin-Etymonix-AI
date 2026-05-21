@@ -1,12 +1,8 @@
 from langchain_openai import ChatOpenAI
 
+from agent.persona import SYSTEM_PROMPT
 from agent.sanitize import strip_think_content
 from agent.schema import ChatState
-
-SYSTEM_PROMPT = (
-    "你是「英文词根斩」学习助手，帮助用户理解词根、单词和英语词汇。"
-    "回答请简洁清晰，适合学习者阅读。"
-)
 
 
 def create_chat_node(base_url: str, api_key: str, model: str):
