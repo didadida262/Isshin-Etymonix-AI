@@ -1,4 +1,4 @@
-import { faArrowUp, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faArrowUp, faChevronDown, faChevronUp, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -11,9 +11,10 @@ const POS_STORAGE_KEY = 'chat-panel-position';
 const VIEWPORT_MARGIN = 20;
 const PANEL_WIDTH = 380;
 const PANEL_HEIGHT = 480;
-const COLLAPSED_WIDTH = 296;
-const PANEL_RADIUS_EXPANDED = 16;
-const PANEL_RADIUS_COLLAPSED = 11;
+const COLLAPSED_WIDTH = 200;
+const COLLAPSED_HEIGHT = 40;
+const PANEL_RADIUS = 12;
+const COLLAPSED_RADIUS = 8;
 
 const panelTransition = { type: 'spring' as const, stiffness: 360, damping: 30 };
 
@@ -28,7 +29,7 @@ let idCounter = 0;
 export function ChatPanel() {
   const { settings, updateSettings } = useLlmSettings();
   const game = useGameSessionOptional();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -288,12 +289,13 @@ export function ChatPanel() {
   return (
     <motion.div
       ref={cardRef}
-      className="fixed z-50 flex flex-col select-none"
+      className="fixed z-50 flex flex-col overflow-hidden select-none"
       style={{
         left: positioned ? position.x : undefined,
         top: positioned ? position.y : undefined,
         right: positioned ? 'auto' : VIEWPORT_MARGIN,
         bottom: positioned ? 'auto' : VIEWPORT_MARGIN,
+        borderRadius: collapsed ? COLLAPSED_RADIUS : PANEL_RADIUS,
         transition: isDragging ? 'none' : undefined,
       }}
       initial={{ opacity: 0, scale: 0.94 }}
@@ -301,33 +303,29 @@ export function ChatPanel() {
         opacity: 1,
         scale: 1,
         width: collapsed ? COLLAPSED_WIDTH : PANEL_WIDTH,
-        height: collapsed ? 'auto' : PANEL_HEIGHT,
+        height: collapsed ? COLLAPSED_HEIGHT : PANEL_HEIGHT,
       }}
       transition={isDragging ? { duration: 0 } : panelTransition}
     >
-      <motion.div
+      <div
         className={cn(
-          'flex min-h-0 w-full flex-1 flex-col overflow-hidden',
-          game?.canJudge && 'ring-2 ring-cyan-500/50 ring-offset-2 ring-offset-transparent'
+          'flex h-full min-h-0 w-full flex-col overflow-hidden',
+          !collapsed &&
+            game?.canJudge &&
+            'ring-2 ring-cyan-500/50 ring-offset-2 ring-offset-transparent'
         )}
         style={{
-          borderRadius: collapsed ? PANEL_RADIUS_COLLAPSED : PANEL_RADIUS_EXPANDED,
           background: 'rgba(14,14,20,0.97)',
-          border: game?.canJudge
-            ? '1px solid rgba(34,211,238,0.35)'
-            : '1px solid rgba(255,255,255,0.09)',
-          backdropFilter: 'blur(20px)',
           boxShadow: game?.canJudge
-            ? '0 0 40px -8px rgba(34,211,238,0.45)'
-            : '0 8px 40px rgba(0,0,0,0.45)',
+            ? '0 0 0 1px rgba(34,211,238,0.35), 0 0 40px -8px rgba(34,211,238,0.45)'
+            : '0 0 0 1px rgba(255,255,255,0.12), 0 8px 40px rgba(0,0,0,0.45)',
+          backdropFilter: 'blur(20px)',
         }}
       >
         <div
           className={cn(
-            'flex shrink-0 items-center justify-between gap-2 transition-colors',
-            collapsed
-              ? 'min-w-[296px] px-5 py-1.5'
-              : 'border-b border-white/[0.07] px-3 py-2'
+            'flex h-10 shrink-0 items-center justify-between gap-2 px-3',
+            !collapsed && 'border-b border-white/[0.07]'
           )}
         >
           <div
@@ -337,8 +335,10 @@ export function ChatPanel() {
             title="拖动移动"
           >
             <span
-              className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: loading ? 'rgba(168,85,247,0.9)' : 'rgba(99,102,241,0.9)' }}
+              className={cn(
+                'inline-block h-2 w-2 shrink-0 rounded-full bg-emerald-400 animate-breathe-dot',
+                loading && '[animation-duration:1.2s]'
+              )}
             />
             <span
               className={cn(
@@ -374,32 +374,31 @@ export function ChatPanel() {
                 )}
             </select>
           )}
-          <motion.button
+          <button
             type="button"
-            className="shrink-0 px-1.5 py-1 text-white/35 hover:text-white/60"
+            aria-label={collapsed ? '展开判官' : '收起判官'}
+            aria-expanded={!collapsed}
+            title={collapsed ? '展开' : '收起'}
+            className="inline-flex shrink-0 items-center justify-center p-0.5 text-white/45 transition-colors hover:text-white/75"
             onClick={() => setCollapsed((v) => !v)}
             onPointerDown={(e) => e.stopPropagation()}
-            whileTap={{ scale: 0.9 }}
           >
-            <motion.span
-              animate={{ rotate: collapsed ? 0 : 180 }}
-              transition={{ duration: 0.22 }}
-              className="inline-block text-[10px] leading-none"
-            >
-              ▴
-            </motion.span>
-          </motion.button>
+            <FontAwesomeIcon
+              icon={collapsed ? faChevronUp : faChevronDown}
+              className="h-2.5 w-2.5"
+            />
+          </button>
         </div>
 
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} mode="popLayout">
           {!collapsed && (
             <motion.div
               key="body"
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
               <div
                 ref={scrollRef}
@@ -501,7 +500,7 @@ export function ChatPanel() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

@@ -131,10 +131,11 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
           <button
             type="button"
             onClick={toggleLang}
-            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-all hover:border-cyan-500/30 hover:bg-white/10 hover:text-white"
+            title={lang === 'zh' ? 'Switch to English' : '切换到中文'}
+            aria-label={lang === 'zh' ? `Switch to English (${t.lang})` : `切换到中文 (${t.lang})`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-400 transition-colors hover:border-cyan-500/30 hover:bg-white/10 hover:text-cyan-300"
           >
-            <FontAwesomeIcon icon={faGlobe} className="text-cyan-400" />
-            <span>{t.lang}</span>
+            <FontAwesomeIcon icon={faGlobe} className="h-4 w-4 text-cyan-400" />
           </button>
         </div>
       </header>

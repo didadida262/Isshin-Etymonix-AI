@@ -195,7 +195,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   点击「获取模型列表」加载可用模型
                 </p>
               ) : (
-                <ul className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03] p-1.5">
+                <ul className="max-h-56 divide-y divide-white/[0.08] overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03]">
                   {displayModels.map((m) => {
                     const selected = draft.model === m;
                     return (
@@ -204,10 +204,10 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                           type="button"
                           onClick={() => setDraft((d) => ({ ...d, model: m }))}
                           className={cn(
-                            'w-full rounded-md px-3 py-2.5 text-left text-sm leading-snug break-all transition-colors',
+                            'w-full px-3 py-2.5 text-left text-sm leading-snug break-all transition-colors',
                             selected
-                              ? 'border border-indigo-500/40 bg-indigo-500/15 text-cyan-100'
-                              : 'border border-transparent text-zinc-300 hover:bg-white/5 hover:text-white'
+                              ? 'bg-indigo-500/15 text-cyan-100'
+                              : 'text-zinc-300 hover:bg-white/5 hover:text-white'
                           )}
                         >
                           {m}
