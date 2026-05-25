@@ -105,6 +105,8 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 
   /* 翻转状态：rootIdx → wordIdx → true=正面 / false=背面 */
   const [flipped, setFlipped] = useState<Record<number, Record<number, boolean>>>({});
+  /** 临时测试：一键全开 / 还原背面 */
+  const [testRevealAll, setTestRevealAll] = useState(false);
 
   /* 轰炸循环 */
   const [running, setRunning] = useState(false);
@@ -136,6 +138,13 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   }, []);
 
   /* ── 翻回一张卡 ── */
+  const toggleTestRevealAll = useCallback(() => {
+    setTestRevealAll((prev) => {
+      if (prev) setFlipped({});
+      return !prev;
+    });
+  }, []);
+
   const flipClose = useCallback((card: FlatCard) => {
     setFlipped((prev) => ({
       ...prev,
@@ -277,13 +286,28 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
       {/* ── 顶栏 ── */}
       <FinaleOverlay />
 
-      <header className="sticky top-0 z-40 flex flex-col gap-2 border-b border-white/[0.08] bg-zinc-950/70 px-3 py-2.5 backdrop-blur-xl md:px-6 md:py-3">
+      <header className="relative z-40 sticky top-0 flex flex-col gap-2 border-b border-white/[0.08] bg-zinc-950/70 px-3 py-2.5 backdrop-blur-xl md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2">
         <h1 className="font-display shrink-0 text-sm font-semibold tracking-tight text-white md:text-lg">
           <span className="hidden md:inline">Unit {unitId} · 词根斩</span>
           <span className="md:hidden">Unit {unitId}</span>
         </h1>
         <div className="flex shrink-0 items-center gap-2 md:gap-4">
+          <button
+            type="button"
+            onClick={toggleTestRevealAll}
+            disabled={loading || cardsCount === 0}
+            title={testRevealAll ? '恢复所有卡片为背面' : '临时测试：翻开全部单词牌'}
+            className={cn(
+              'inline-flex items-center rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors md:px-3 md:py-2 md:text-sm',
+              testRevealAll
+                ? 'border-amber-500/40 bg-amber-950/50 text-amber-300 hover:bg-amber-900/40'
+                : 'border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200',
+              (loading || cardsCount === 0) && 'cursor-not-allowed opacity-50'
+            )}
+          >
+            {testRevealAll ? '还原' : '全开'}
+          </button>
           <SettingsButton onClick={openSettings} />
           {/* 返回 */}
           <button
@@ -337,7 +361,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
       <RoundPromptBanner countdown={countdown} />
 
       {/* ── 主体内容 ── */}
-      <main className="mx-auto max-w-6xl space-y-8 px-3 py-5 sm:px-4 sm:py-8 md:space-y-10 md:px-6">
+      <main className="relative z-10 mx-auto max-w-6xl space-y-8 px-3 py-5 sm:px-4 sm:py-8 md:space-y-10 md:px-6">
         {/* 加载状态 */}
         {loading && (
           <div className="flex items-center justify-center py-20">
@@ -405,7 +429,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
               {/* 2×2 卡牌网格 */}
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {root.words.map((word, wi) => {
-                  const isFlipped = !!flipped[ri]?.[wi];
+                  const isFlipped = testRevealAll || !!flipped[ri]?.[wi];
                   const isCurrent =
                     current?.rootIdx === ri && current?.wordIdx === wi;
 
@@ -416,6 +440,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
                       flipped={isFlipped}
                       highlighted={isCurrent}
                       reduceMotion={!!reduceMotion}
+                      immediateDefinition={testRevealAll}
                     />
                   );
                 })}
@@ -437,6 +462,8 @@ interface FlipCardProps {
   flipped: boolean;
   highlighted: boolean;
   reduceMotion: boolean;
+  /** 全开测试时立即显示释义，不等待 20s */
+  immediateDefinition?: boolean;
 }
 
 const FlipCard = React.memo(({
@@ -444,6 +471,7 @@ const FlipCard = React.memo(({
   flipped,
   highlighted,
   reduceMotion,
+  immediateDefinition = false,
 }: FlipCardProps) => {
   const openMs = reduceMotion ? 0 : FLIP_OPEN_MS;
   const closeMs = reduceMotion ? 0 : FLIP_CLOSE_MS;
@@ -456,9 +484,13 @@ const FlipCard = React.memo(({
       setShowDef(false);
       return;
     }
+    if (immediateDefinition) {
+      setShowDef(true);
+      return;
+    }
     const timer = setTimeout(() => setShowDef(true), DEFINITION_REVEAL_MS);
     return () => clearTimeout(timer);
-  }, [flipped]);
+  }, [flipped, immediateDefinition]);
   
   // 性能优化：缓存样式
   const hoverScale = reduceMotion ? 1 : 1.02;
@@ -522,27 +554,28 @@ const FlipCard = React.memo(({
         {/* ──── 正面 ──── */}
         <div
           className={cn(
-            'absolute inset-0 flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-xl border overflow-hidden',
+            'absolute inset-0 flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-xl border overflow-hidden px-2 py-3',
+            'bg-gradient-to-br from-zinc-900 via-black to-zinc-900',
             highlighted
-              ? 'border-cyan-400/50 bg-gradient-to-br from-zinc-900 via-zinc-900 to-cyan-950/50 shadow-[0_0_28px_-6px_rgba(34,211,238,0.45)]'
-              : 'border-white/10 bg-gradient-to-br from-zinc-800/95 via-zinc-900 to-black'
+              ? 'border-cyan-400/50 shadow-[0_0_28px_-6px_rgba(34,211,238,0.45)]'
+              : 'border-cyan-500/20 shadow-[0_0_24px_-10px_rgba(6,182,212,0.28)]'
           )}
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           {/* 单词 */}
-          <span className="font-display text-xl font-bold text-white">
+          <span className="shrink-0 font-display text-lg font-bold text-white md:text-xl">
             {word.word}
           </span>
-          <div className="h-px w-12 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
-          {/* 拆解释义 - 翻开后 20s 淡入 */}
-          <motion.span
-            className="max-w-[85%] text-center text-sm leading-relaxed text-zinc-300"
+          <div className="h-px w-12 shrink-0 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
+          {/* 释义：全开立即显示；轰炸流程中翻牌 20s 后淡入 */}
+          <motion.p
+            className="min-h-0 max-h-[42%] w-full overflow-y-auto text-center text-xs leading-relaxed text-zinc-300 md:text-sm"
             initial={{ opacity: 0, y: 4 }}
             animate={showDef ? { opacity: 1, y: 0 } : { opacity: 0, y: 4 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            transition={{ duration: immediateDefinition ? 0.2 : 0.5, ease: 'easeOut' }}
           >
             {word.definition}
-          </motion.span>
+          </motion.p>
         </div>
       </motion.div>
     </motion.div>
