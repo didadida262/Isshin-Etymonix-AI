@@ -121,6 +121,22 @@ export function ChatPanel() {
     });
   }, [collapsed, clampPositionForCollapsed]);
 
+  /** 轰炸「开始」后自动展开判官面板 */
+  useEffect(() => {
+    if (game?.active) {
+      setCollapsed(false);
+    }
+  }, [game?.active]);
+
+  const showJudgeInputPrompt = !collapsed && !!game?.canJudge;
+
+  /** 轮到阅卷时引导用户聚焦输入框 */
+  useEffect(() => {
+    if (!showJudgeInputPrompt || loading) return;
+    const t = window.setTimeout(() => textareaRef.current?.focus(), 420);
+    return () => window.clearTimeout(t);
+  }, [showJudgeInputPrompt, loading, game?.currentCard?.word]);
+
   useEffect(() => () => dragCleanupRef.current?.(), []);
 
   const resizeTextarea = useCallback(() => {
@@ -513,12 +529,19 @@ export function ChatPanel() {
               )}
 
               <div className="shrink-0 border-t border-white/[0.07] p-3">
+                {showJudgeInputPrompt && (
+                  <p className="mb-2 flex items-center gap-2 text-xs font-medium text-cyan-300/95">
+                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400 animate-pulse" />
+                    请在此输入词根解释，Enter 发送阅卷
+                  </p>
+                )}
                 <div
-                  className="flex items-end gap-2 rounded-xl border px-2 py-2"
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    borderColor: 'rgba(255,255,255,0.1)',
-                  }}
+                  className={cn(
+                    'flex items-end gap-2 rounded-xl border px-2 py-2 transition-colors',
+                    showJudgeInputPrompt
+                      ? 'animate-judge-input-prompt border-cyan-400/50 bg-cyan-950/25'
+                      : 'border-white/10 bg-white/[0.04]'
+                  )}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <textarea
@@ -535,7 +558,12 @@ export function ChatPanel() {
                           : '输入消息，Enter 发送，Shift+Enter 换行'
                     }
                     disabled={loading}
-                    className="max-h-[120px] min-h-[24px] min-w-0 flex-1 resize-none bg-transparent px-1 py-1 text-sm text-white/90 outline-none placeholder:text-white/25 disabled:opacity-50"
+                    className={cn(
+                      'max-h-[120px] min-h-[24px] min-w-0 flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none disabled:opacity-50',
+                      showJudgeInputPrompt
+                        ? 'text-white placeholder:text-cyan-200/45'
+                        : 'text-white/90 placeholder:text-white/25'
+                    )}
                   />
                   <button
                     type="button"
