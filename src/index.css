@@ -104,4 +104,45 @@
   .animate-judge-input-prompt {
     animation: judge-input-prompt 1.5s ease-in-out infinite;
   }
+
+  @keyframes countdown-warning-tick {
+    0% {
+      transform: scale(1.18);
+      border-color: rgba(252, 165, 165, 0.95);
+      box-shadow:
+        0 0 0 3px rgba(248, 113, 113, 0.45),
+        0 0 36px -2px rgba(248, 113, 113, 0.75),
+        inset 0 0 20px -8px rgba(248, 113, 113, 0.35);
+    }
+    55% {
+      transform: scale(1.06);
+      border-color: rgba(248, 113, 113, 0.75);
+      box-shadow:
+        0 0 0 1px rgba(248, 113, 113, 0.25),
+        0 0 24px -6px rgba(248, 113, 113, 0.5);
+    }
+    100% {
+      transform: scale(1);
+      border-color: rgba(248, 113, 113, 0.55);
+      box-shadow: 0 0 18px -8px rgba(248, 113, 113, 0.4);
+    }
+  }
+
+  .animate-countdown-warning-tick {
+    animation: countdown-warning-tick 0.9s cubic-bezier(0.34, 1.25, 0.64, 1) forwards;
+  }
+
+  @keyframes countdown-warning-glow {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+
+  .animate-countdown-warning-glow {
+    animation: countdown-warning-glow 0.9s ease-out;
+  }
 }

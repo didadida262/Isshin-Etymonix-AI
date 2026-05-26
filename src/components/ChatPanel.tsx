@@ -489,11 +489,6 @@ export function ChatPanel() {
                 ref={scrollRef}
                 className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3"
               >
-                {messages.length === 0 && !loading && (
-                  <p className="py-6 text-center text-xs text-white/25">
-                    向判官提问词根、单词或英语学习相关问题
-                  </p>
-                )}
                 {messages.map((msg) => {
                   if (msg.role === 'assistant' && !msg.content.trim()) return null;
                   return (

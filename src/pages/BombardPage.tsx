@@ -311,6 +311,9 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
     if (!running) clearTimers();
   }, [clearTimers, running]);
 
+  const countdownWarning = running && countdown > 0 && countdown <= 10;
+  const countdownUrgency = countdownWarning ? 11 - countdown : 0;
+
   return (
     <div className="relative min-h-screen bg-zinc-950 text-zinc-100">
       {/* ── 顶栏 ── */}
@@ -328,26 +331,57 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
           <div className="flex h-11 items-center justify-center gap-2.5 md:h-12">
               <div
                 className={cn(
-                  'flex h-11 shrink-0 items-center justify-center overflow-hidden transition-[width] duration-200 md:h-12',
-                  running ? 'w-[4.75rem] md:w-[5.75rem]' : 'w-0'
+                  'relative flex h-11 shrink-0 items-center justify-center overflow-visible transition-[width] duration-200 md:h-12',
+                  running
+                    ? countdownWarning
+                      ? 'w-[5.25rem] md:w-[6.25rem]'
+                      : 'w-[4.75rem] md:w-[5.75rem]'
+                    : 'w-0 overflow-hidden'
                 )}
                 aria-hidden={!running}
               >
                 <AnimatePresence mode="wait">
                   {running && countdown > 0 ? (
                     <motion.span
-                      key="cd"
-                      initial={{ opacity: 0, scale: 0.92 }}
+                      key={countdownWarning ? `warn-${countdown}` : 'cd'}
+                      initial={
+                        countdownWarning
+                          ? { opacity: 0.7, scale: 1.14 }
+                          : { opacity: 0, scale: 0.92 }
+                      }
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.92 }}
+                      transition={
+                        countdownWarning
+                          ? { type: 'spring', stiffness: 520, damping: 22 }
+                          : { duration: 0.2 }
+                      }
                       className={cn(
-                        'inline-flex h-11 w-full items-center justify-center rounded-xl border',
-                        'border-cyan-400/50 bg-gradient-to-b from-cyan-800/70 to-cyan-950/95',
-                        'font-mono text-xl font-bold tabular-nums tracking-wide text-cyan-50',
-                        'shadow-[0_0_28px_-6px_rgba(34,211,238,0.55)] md:h-12 md:text-2xl'
+                        'relative inline-flex h-11 w-full items-center justify-center rounded-xl border font-mono font-bold tabular-nums tracking-wide md:h-12',
+                        countdownWarning
+                          ? cn(
+                              'animate-countdown-warning-tick',
+                              'border-red-400/60 bg-gradient-to-b from-red-800/90 to-red-950/95 text-red-50',
+                              'shadow-[0_0_32px_-4px_rgba(248,113,113,0.65)]',
+                              countdownUrgency >= 7 && 'text-3xl md:text-4xl',
+                              countdownUrgency >= 4 &&
+                                countdownUrgency < 7 &&
+                                'text-2xl md:text-3xl',
+                              countdownUrgency < 4 && 'text-xl md:text-2xl'
+                            )
+                          : cn(
+                              'border-cyan-400/50 bg-gradient-to-b from-cyan-800/70 to-cyan-950/95 text-cyan-50',
+                              'text-xl shadow-[0_0_28px_-6px_rgba(34,211,238,0.55)] md:text-2xl'
+                            )
                       )}
                     >
-                      {countdown}s
+                      {countdownWarning && (
+                        <span
+                          className="pointer-events-none absolute inset-0 rounded-xl bg-red-500/20 animate-countdown-warning-glow"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="relative">{countdown}s</span>
                     </motion.span>
                   ) : null}
                 </AnimatePresence>
