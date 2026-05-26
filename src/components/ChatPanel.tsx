@@ -50,15 +50,27 @@ export function ChatPanel() {
   const dragCleanupRef = useRef<(() => void) | null>(null);
   const DRAG_THRESHOLD_PX = 4;
 
-  const clampPosition = useCallback((x: number, y: number) => {
-    const el = cardRef.current;
-    const w = el?.offsetWidth ?? PANEL_WIDTH;
-    const h = el?.offsetHeight ?? PANEL_HEIGHT;
-    return {
-      x: Math.max(VIEWPORT_MARGIN, Math.min(x, window.innerWidth - w - VIEWPORT_MARGIN)),
-      y: Math.max(VIEWPORT_MARGIN, Math.min(y, window.innerHeight - h - VIEWPORT_MARGIN)),
-    };
-  }, []);
+  const clampPosition = useCallback(
+    (x: number, y: number, size?: { width: number; height: number }) => {
+      const el = cardRef.current;
+      const w = size?.width ?? el?.offsetWidth ?? PANEL_WIDTH;
+      const h = size?.height ?? el?.offsetHeight ?? PANEL_HEIGHT;
+      return {
+        x: Math.max(VIEWPORT_MARGIN, Math.min(x, window.innerWidth - w - VIEWPORT_MARGIN)),
+        y: Math.max(VIEWPORT_MARGIN, Math.min(y, window.innerHeight - h - VIEWPORT_MARGIN)),
+      };
+    },
+    []
+  );
+
+  const clampPositionForCollapsed = useCallback(
+    (x: number, y: number, isCollapsed: boolean) =>
+      clampPosition(x, y, {
+        width: isCollapsed ? COLLAPSED_WIDTH : PANEL_WIDTH,
+        height: isCollapsed ? COLLAPSED_HEIGHT : PANEL_HEIGHT,
+      }),
+    [clampPosition]
+  );
 
   const initPosition = useCallback(() => {
     const el = cardRef.current;
@@ -68,18 +80,21 @@ export function ChatPanel() {
       try {
         const { x, y } = JSON.parse(saved) as { x: number; y: number };
         if (typeof x === 'number' && typeof y === 'number') {
-          setPosition(clampPosition(x, y));
+          setPosition(clampPositionForCollapsed(x, y, collapsed));
           return;
         }
       } catch {
         /* ignore */
       }
     }
-    const { offsetWidth: w, offsetHeight: h } = el;
     setPosition(
-      clampPosition(window.innerWidth - w - VIEWPORT_MARGIN, window.innerHeight - h - VIEWPORT_MARGIN)
+      clampPositionForCollapsed(
+        window.innerWidth - COLLAPSED_WIDTH - VIEWPORT_MARGIN,
+        window.innerHeight - COLLAPSED_HEIGHT - VIEWPORT_MARGIN,
+        true
+      )
     );
-  }, [clampPosition]);
+  }, [clampPositionForCollapsed, collapsed]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -99,8 +114,12 @@ export function ChatPanel() {
 
   useEffect(() => {
     if (isDraggingRef.current || !position) return;
-    setPosition((p) => (p ? clampPosition(p.x, p.y) : p));
-  }, [collapsed, clampPosition]);
+    setPosition((p) => {
+      if (!p) return p;
+      const next = clampPositionForCollapsed(p.x, p.y, collapsed);
+      return next.x === p.x && next.y === p.y ? p : next;
+    });
+  }, [collapsed, clampPositionForCollapsed]);
 
   useEffect(() => () => dragCleanupRef.current?.(), []);
 
@@ -328,6 +347,10 @@ export function ChatPanel() {
         height: collapsed ? COLLAPSED_HEIGHT : PANEL_HEIGHT,
       }}
       transition={isDragging ? { duration: 0 } : panelTransition}
+      onAnimationComplete={() => {
+        if (isDraggingRef.current || !position) return;
+        setPosition((p) => (p ? clampPosition(p.x, p.y) : p));
+      }}
     >
       <div
         className={cn(
@@ -411,7 +434,13 @@ export function ChatPanel() {
             aria-expanded={!collapsed}
             title={collapsed ? '展开' : '收起'}
             className="inline-flex shrink-0 items-center justify-center p-0.5 text-white/45 transition-colors hover:text-white/75"
-            onClick={() => setCollapsed((v) => !v)}
+            onClick={() => {
+              setCollapsed((v) => {
+                const next = !v;
+                setPosition((p) => (p ? clampPositionForCollapsed(p.x, p.y, next) : p));
+                return next;
+              });
+            }}
             onPointerDown={(e) => e.stopPropagation()}
           >
             <FontAwesomeIcon
