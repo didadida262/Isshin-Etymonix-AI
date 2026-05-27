@@ -70,9 +70,26 @@ yarn build:cf
 
 ---
 
+## 聊天 405 Method Not Allowed
+
+原因：`public/_redirects` 里 `/* → /index.html` 把 **`/api/*` 也当成静态页**了。GET 返回首页 HTML（假 200），POST 返回 405。
+
+已删除该文件（应用用 hash 路由，不需要全站 SPA 回退）。
+
+**聊天 / 阅卷必须部署 Worker**，仅 `yarn build:pages` 不够：
+
+```bash
+# Build command（需 CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID）
+yarn build:cf
+# Output directory：留空
+```
+
+自检：`curl -X POST https://你的域名/api/chat/stream` 不应再是 405（未配 Token 时构建会失败，勿只用 build:pages）。
+
 ## 部署后自检
 
 1. **Caching → Purge Everything**
 2. 无痕窗口打开站点
 3. F12 → Network：JS 不应再是旧的 `index-7ytnn2NB.js`（以最新 build 的 hash 为准）
 4. 模型列表请求域名应为 `aiplatform.njsrd.com`，不是 `/api/models`
+5. `POST /api/chat/stream` 不是 405；`GET /api/health` 返回 `{"status":"ok"}` 而不是 HTML
