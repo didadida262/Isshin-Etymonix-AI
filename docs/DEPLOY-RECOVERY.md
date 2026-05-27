@@ -36,8 +36,10 @@ yarn build:pages
 **Build output directory：**
 
 ```text
-dist/client
+dist
 ```
+
+（`build:pages` 会把 `dist/client` 同步到 `dist/` 根目录，**不要**只填 `dist/client`，否则容易整站 404。）
 
 **不要**在 Build 里加 `wrangler deploy`。
 

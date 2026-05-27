@@ -49,8 +49,8 @@ yarn dev
 
 | 配置项 | 正确值 | 错误示例 |
 |--------|--------|----------|
-| **Build command** | 先救站：`yarn build:pages`；要 API：`yarn build:cf` + Token | `yarn build && wrangler deploy` 但没 Token / Output 填错 |
-| **Build output directory** | 用 `build:pages` 时填 **`dist/client`**；用 `build:cf` 时**留空** | **`dist`** 或 `build:cf` 时又填 `dist/client`（易全站 404） |
+| **Build command** | 先救站：`yarn build:pages`；要 API：`yarn build:cf` + Token | 只 `vite build` 不 sync / Token 缺失 |
+| **Build output directory** | 用 `build:pages` 时填 **`dist`**（脚本会同步 client 到根目录） | 只填 **`dist/client`**（易整站 404） |
 
 部署后自检：打开首页 → F12 → 看 JS 文件名应是 **`index-BqyeXQGv.js`** 这类新 hash，且 Network 里模型列表请求域名是 **`aiplatform.njsrd.com`**，不是 `mileswang262.com/api/models`。
 

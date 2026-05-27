@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/verify-client-build.mjs",
+    "build": "vite build && node scripts/verify-client-build.mjs && node scripts/sync-dist-root.mjs",
     "build:check": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
-    "build:pages": "vite build && node scripts/verify-client-build.mjs",
+    "build:pages": "vite build && node scripts/verify-client-build.mjs && node scripts/sync-dist-root.mjs",
     "build:cf": "vite build && node scripts/verify-client-build.mjs && wrangler deploy",
     "preview": "vite build && wrangler dev",
     "deploy": "yarn build:cf",
