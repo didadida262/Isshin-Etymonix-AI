@@ -1,14 +1,15 @@
 # Dependencies
 node_modules
 
-# Python
-server/venv/
+# Python (Week1 参考代码)
 venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
-.pytest_cache/
-.mypy_cache/
+
+# Wrangler
+.wrangler/
+.dev.vars
 
 # Yarn 4+ (state/cache; not committed)
 .yarn/*
