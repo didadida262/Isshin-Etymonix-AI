@@ -81,19 +81,26 @@ yarn build:cf
 
 ## 聊天 405 Method Not Allowed
 
-原因：`public/_redirects` 里 `/* → /index.html` 把 **`/api/*` 也当成静态页**了。GET 返回首页 HTML（假 200），POST 返回 405。
+**现象**：`POST /api/chat/stream` → 405，但 `GET /api/health` 返回的是 **HTML** 而不是 JSON。
 
-已删除该文件（应用用 hash 路由，不需要全站 SPA 回退）。
+**原因**：只有 **Pages 静态站**在跑，`/api` 没被 Functions/Worker 接管（静态托管不允许对「页面」做 POST）。
 
-**聊天 / 阅卷必须部署 Worker**，仅 `yarn build:pages` 不够：
+**修复**：仓库已加 `functions/api/`（Pages Functions）+ `public/_routes.json`（只让 `/api/*` 走 Functions）。
+
+**Build command 用**：
 
 ```bash
-# Build command（需 CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID）
-yarn build:cf
-# Output directory：留空
+yarn build:pages
 ```
 
-自检：`curl -X POST https://你的域名/api/chat/stream` 不应再是 405（未配 Token 时构建会失败，勿只用 build:pages）。
+**Output**：`/`（固定即可）
+
+**不要**再依赖 `yarn build:cf` 才能聊天（除非你自己用 CLI 部署 Worker）。
+
+自检：
+
+- `GET /api/health` → `{"status":"ok"}`（不是 HTML）
+- `POST /api/chat/stream` → 不是 405
 
 ## 部署后自检
 

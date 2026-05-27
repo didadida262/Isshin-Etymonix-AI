@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLlmSettings, type LlmSettings } from '../context/LlmSettingsContext';
 import { LLM_BASE_URL, MODELS_API_URL } from '../lib/llmEndpoints';
-import { fetchModels } from '../lib/api';
+import { fetchModels, testLlmConnection } from '../lib/api';
 import { cn } from '../lib/cn';
 
 interface SettingsModalProps {
@@ -25,7 +25,9 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [draft, setDraft] = useState<LlmSettings>(settings);
   const [models, setModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [error, setError] = useState('');
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const modelListRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       setDraft(settings);
       setModels(settings.models);
       setError('');
+      setTestResult(null);
     }
   }, [open, settings]);
 
@@ -116,6 +119,38 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     return () => window.clearTimeout(timer);
   }, [open, loadingModels, displayModels, draft.model, scrollToSelectedModel]);
 
+  const handleTest = useCallback(async () => {
+    if (!draft.apiKey.trim()) {
+      setTestResult({ ok: false, message: '请先填写 API Key' });
+      return;
+    }
+    if (!draft.model.trim()) {
+      setTestResult({ ok: false, message: '请先选择模型' });
+      return;
+    }
+    setTesting(true);
+    setTestResult(null);
+    setError('');
+    try {
+      const reply = await testLlmConnection({
+        apiKey: draft.apiKey.trim(),
+        model: draft.model.trim(),
+      });
+      const preview = reply.trim().slice(0, 80);
+      setTestResult({
+        ok: true,
+        message: preview ? `连接成功，模型回复：${preview}` : '连接成功，模型已正常响应',
+      });
+    } catch (err) {
+      setTestResult({
+        ok: false,
+        message: err instanceof Error ? err.message : '测试失败',
+      });
+    } finally {
+      setTesting(false);
+    }
+  }, [draft.apiKey, draft.model]);
+
   const handleSave = () => {
     if (!draft.apiKey.trim()) {
       setError('API Key 不能为空');
@@ -170,7 +205,10 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   <input
                     type="password"
                     value={draft.apiKey}
-                    onChange={(e) => setDraft((d) => ({ ...d, apiKey: e.target.value }))}
+                    onChange={(e) => {
+                      setDraft((d) => ({ ...d, apiKey: e.target.value }));
+                      setTestResult(null);
+                    }}
                     placeholder="sk-..."
                     className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/40"
                   />
@@ -218,7 +256,10 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                         <button
                           type="button"
                           data-selected-model={selected ? 'true' : undefined}
-                          onClick={() => setDraft((d) => ({ ...d, model: m }))}
+                          onClick={() => {
+                            setDraft((d) => ({ ...d, model: m }));
+                            setTestResult(null);
+                          }}
                           className={cn(
                             'w-full px-3 py-2.5 text-left text-sm leading-snug break-all transition-colors',
                             selected
@@ -241,22 +282,49 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             </section>
 
             {error && <p className="mb-3 text-xs text-red-400">{error}</p>}
+            {testResult && (
+              <p
+                className={cn(
+                  'mb-3 text-xs',
+                  testResult.ok ? 'text-emerald-400' : 'text-red-400'
+                )}
+              >
+                {testResult.message}
+              </p>
+            )}
 
-            <div className="flex justify-end gap-2 border-t border-white/[0.08] pt-4">
+            <div className="flex items-center justify-between gap-2 border-t border-white/[0.08] pt-4">
               <button
                 type="button"
-                onClick={onClose}
-                className="rounded-lg border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5"
+                onClick={() => void handleTest()}
+                disabled={testing}
+                className="rounded-lg border border-cyan-500/30 px-4 py-2 text-sm text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50"
               >
-                取消
+                {testing ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                    测试中
+                  </span>
+                ) : (
+                  '测试'
+                )}
               </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-              >
-                保存
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-lg border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+                >
+                  保存
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>

@@ -145,6 +145,17 @@ export async function sendJudge(
   return { verdict, feedback: data.feedback ?? '' };
 }
 
+/** 测试大模型连通性：走本站 Agent（/api） */
+export async function testLlmConnection(
+  settings: Pick<LlmSettings, 'apiKey' | 'model'>
+): Promise<string> {
+  return sendChat('请只回复 OK', [], {
+    apiKey: settings.apiKey,
+    model: settings.model,
+    models: [],
+  });
+}
+
 export async function sendChat(
   message: string,
   history: ChatMessagePayload[],

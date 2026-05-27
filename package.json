@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/verify-client-build.mjs && node scripts/sync-dist-root.mjs",
-    "build:check": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
+    "build:check": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.functions.json",
     "build:pages": "vite build && node scripts/verify-client-build.mjs && node scripts/sync-dist-root.mjs && node scripts/publish-dist-to-root.mjs",
-    "build:cf": "vite build && node scripts/verify-client-build.mjs && node scripts/sync-dist-root.mjs && node scripts/publish-dist-to-root.mjs && wrangler deploy --config wrangler.worker.toml",
+    "build:cf": "yarn build:pages && wrangler deploy --config wrangler.worker.toml",
     "preview": "vite build && wrangler dev --config wrangler.worker.toml",
     "deploy": "yarn build:cf",
     "gen": "node convert-pages-to-json.js"

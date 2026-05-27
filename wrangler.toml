@@ -1,0 +1,4 @@
+# Pages Functions 运行时配置（勿添加 main / pages_build_output_dir / [assets]）
+name = "english-root-zhan"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]

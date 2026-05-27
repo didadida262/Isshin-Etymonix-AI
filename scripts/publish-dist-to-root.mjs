@@ -16,7 +16,7 @@ if (!isCi) {
 }
 
 const distDir = path.resolve('dist');
-const allowList = ['index.html', 'favicon.svg', 'assets', '_headers'];
+const allowList = ['index.html', 'favicon.svg', 'assets', '_headers', '_routes.json'];
 
 if (!fs.existsSync(path.join(distDir, 'index.html'))) {
   console.error('[publish-dist-to-root] 缺少 dist/index.html，请先 vite build');
