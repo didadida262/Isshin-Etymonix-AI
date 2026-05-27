@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "build:check": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json",
+    "build:cf": "vite build && wrangler deploy",
     "preview": "vite build && wrangler dev",
-    "deploy": "vite build && wrangler deploy",
+    "deploy": "yarn build:cf",
     "gen": "node convert-pages-to-json.js"
   },
   "dependencies": {

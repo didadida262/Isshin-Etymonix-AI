@@ -37,14 +37,18 @@ yarn dev
 
 本项目使用 `@cloudflare/vite-plugin`，构建后静态资源在 `dist/client/`，Worker 在 `dist/english_root_zhan/`。**不要**只把 `dist` 当纯静态目录部署（会导致 `/assets/*` 404、白屏）。
 
-### 方式 A：Dashboard（Git 自动部署）
+### 方式 A：Dashboard（Git 自动部署）⚠️ 必读
+
+`vite build` 后前端在 **`dist/client/`**，不在 `dist/` 根目录。若 Output 填成 `dist`，线上会一直跑**旧 JS**（仍请求 `/api/models`、仍有 Base URL 输入框）。
 
 在 Cloudflare → **Workers & Pages** → 你的项目 → **Settings** → **Builds**：
 
-| 配置项 | 值 |
-|--------|-----|
-| **Build command** | `yarn build && npx wrangler deploy` |
-| **Build output directory** | 留空，或填 `dist/client`（若必须填；以 wrangler deploy 为准） |
+| 配置项 | 正确值 | 错误示例 |
+|--------|--------|----------|
+| **Build command** | `yarn build && npx wrangler deploy` | 只有 `yarn build`（Worker/API 不会更新） |
+| **Build output directory** | **`dist/client`** 或留空（以 wrangler deploy 为准） | **`dist`**（会 404 或继续用旧包） |
+
+部署后自检：打开首页 → F12 → 看 JS 文件名应是 **`index-BqyeXQGv.js`** 这类新 hash，且 Network 里模型列表请求域名是 **`aiplatform.njsrd.com`**，不是 `mileswang262.com/api/models`。
 
 并在 **Settings → Environment variables** 中配置（**Production** 与 **Preview** 都要加，类型选 **Encrypt**）：
 
