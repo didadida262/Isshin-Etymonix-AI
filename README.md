@@ -91,7 +91,7 @@ yarn deploy
 ├── worker/
 │   ├── index.ts            # /api/* 路由入口
 │   └── lib/                # 对话、阅卷、模型列表
-├── wrangler.toml           # Worker + 静态资源配置
+├── wrangler.worker.toml    # Worker + 静态资源（勿与 Pages 的 wrangler.toml 混用）
 └── Week1/                  # 早期 Python Agent 参考（不参与运行）
 ```
 

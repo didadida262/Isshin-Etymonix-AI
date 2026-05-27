@@ -11,6 +11,13 @@ Cloudflare → **Workers & Pages** → 项目 **project-language** → **Deploym
 
 ---
 
+## 构建报错：`main` 与 `pages_build_output_dir` 不能同时存在
+
+Pages 会校验根目录 `wrangler.toml`，不能与 Worker 配置混写。本项目已改为：
+
+- **`wrangler.worker.toml`**：仅 `yarn build:cf` / `wrangler deploy` 使用
+- **根目录不再有 `wrangler.toml`**，避免 Pages 校验失败
+
 ## 为什么会整站 404
 
 常见组合错误：
