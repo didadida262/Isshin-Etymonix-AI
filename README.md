@@ -44,14 +44,24 @@ yarn dev
 | **Build command** | `yarn build && npx wrangler deploy` |
 | **Build output directory** | 留空，或填 `dist/client`（若必须填；以 wrangler deploy 为准） |
 
-并在 **Settings → Environment variables** 中配置（Build 用）：
+并在 **Settings → Environment variables** 中配置（**Production** 与 **Preview** 都要加，类型选 **Encrypt**）：
 
 | 变量 | 说明 |
 |------|------|
-| `CLOUDFLARE_API_TOKEN` | [创建 API Token](https://dash.cloudflare.com/profile/api-tokens)，权限含 Account / Workers Scripts / Edit |
-| `CLOUDFLARE_ACCOUNT_ID` | 账户概览页右侧 Account ID |
+| `CLOUDFLARE_API_TOKEN` | 见下方「创建 API Token」 |
+| `CLOUDFLARE_ACCOUNT_ID` | Dashboard 右侧 **Account ID**（32 位字符串） |
+| `NODE_VERSION` | `20` |
 
-`NODE_VERSION` = `20`（建议）
+#### 创建 API Token（解决 `CLOUDFLARE_API_TOKEN` 报错）
+
+1. 打开 [API Tokens](https://dash.cloudflare.com/profile/api-tokens) → **Create Token**
+2. 选模板 **Edit Cloudflare Workers**（或 Custom：Account → **Workers Scripts** → **Edit**）
+3. Account Resources 选 **Include** → 你的账户
+4. 创建后 **复制 Token**（只显示一次）
+5. 回到 Pages 项目 → **Settings** → **Variables** → 新增 `CLOUDFLARE_API_TOKEN`，粘贴 Token，勾选加密
+6. 保存后 **Retry deployment**
+
+> 构建日志里 `In a non-interactive environment, it's necessary to set a CLOUDFLARE_API_TOKEN` 即表示第 5 步未配置或变量名拼写错误。
 
 部署完成后访问 `https://你的域名/api/health` 应返回 `{"status":"ok"}`。
 
