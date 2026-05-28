@@ -320,7 +320,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
       <FinaleOverlay />
 
       <header className="relative z-40 sticky top-0 flex flex-col gap-2 border-b border-white/[0.08] bg-zinc-950/70 px-3 py-2.5 backdrop-blur-xl md:px-6 md:py-3">
-        <div className="grid h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:h-12">
+        <div className="flex items-center justify-between gap-2 md:grid md:h-12 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
           <h1 className="min-w-0 font-display text-sm font-semibold tracking-tight text-white md:text-lg">
             <span className="hidden md:inline">
               Unit {unitId} · {ui.titleSuffix}
@@ -328,7 +328,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
             <span className="md:hidden">Unit {unitId}</span>
           </h1>
 
-          <div className="flex h-11 items-center justify-center gap-2.5 md:h-12">
+          <div className="hidden md:flex md:h-12 md:items-center md:justify-center md:gap-2.5">
               <div
                 className={cn(
                   'relative flex h-11 shrink-0 items-center justify-center overflow-visible transition-[width] duration-200 md:h-12',
@@ -415,38 +415,93 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
           <div className="flex shrink-0 items-center justify-end gap-2 md:gap-3">
             <button
               type="button"
-              onClick={toggleTestRevealAll}
-              disabled={loading || cardsCount === 0}
-              title={testRevealAll ? '恢复所有卡片为背面' : '临时测试：翻开全部单词牌'}
-              className={cn(
-                'inline-flex items-center rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors md:px-3 md:py-2 md:text-sm',
-                testRevealAll
-                  ? 'border-amber-500/40 bg-amber-950/50 text-amber-300 hover:bg-amber-900/40'
-                  : 'border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200',
-                (loading || cardsCount === 0) && 'cursor-not-allowed opacity-50'
-              )}
-            >
-              {testRevealAll ? ui.restore : ui.revealAll}
-            </button>
-            <button
-              type="button"
               onClick={toggleLang}
               title={lang === 'zh' ? 'Switch to English' : '切换到中文'}
               aria-label={lang === 'zh' ? 'Switch to English (EN)' : '切换到中文 (中)'}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-400 transition-colors hover:border-cyan-500/30 hover:bg-white/10 hover:text-cyan-300"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-400 transition-colors hover:border-cyan-500/30 hover:bg-white/10 hover:text-cyan-300 md:h-10 md:w-10"
             >
               <FontAwesomeIcon icon={faGlobe} className="h-4 w-4 text-cyan-400" />
             </button>
-            <SettingsButton onClick={openSettings} />
+            <SettingsButton onClick={openSettings} className="md:h-10 md:w-10" />
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-200 md:px-3 md:py-2 md:text-sm"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs font-medium text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-200 md:h-10 md:px-3.5 md:text-sm"
             >
               <span className="hidden sm:inline">{ui.back}</span>
               <span className="sm:hidden">{ui.backShort}</span>
             </button>
           </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 md:hidden">
+          <div
+            className={cn(
+              'relative flex h-10 shrink-0 items-center justify-center overflow-visible transition-[width] duration-200',
+              running
+                ? countdownWarning
+                  ? 'w-[4.75rem]'
+                  : 'w-[4.25rem]'
+                : 'w-0 overflow-hidden'
+            )}
+            aria-hidden={!running}
+          >
+            <AnimatePresence mode="wait">
+              {running && countdown > 0 ? (
+                <motion.span
+                  key={countdownWarning ? `warn-m-${countdown}` : 'cd-m'}
+                  initial={countdownWarning ? { opacity: 0.7, scale: 1.12 } : { opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={
+                    countdownWarning
+                      ? { type: 'spring', stiffness: 520, damping: 22 }
+                      : { duration: 0.2 }
+                  }
+                  className={cn(
+                    'relative inline-flex h-10 w-full items-center justify-center rounded-xl border font-mono font-bold tabular-nums tracking-wide',
+                    countdownWarning
+                      ? 'animate-countdown-warning-tick border-red-400/60 bg-gradient-to-b from-red-800/90 to-red-950/95 text-red-50 text-xl shadow-[0_0_32px_-4px_rgba(248,113,113,0.65)]'
+                      : 'border-cyan-400/50 bg-gradient-to-b from-cyan-800/70 to-cyan-950/95 text-cyan-50 text-lg shadow-[0_0_28px_-6px_rgba(34,211,238,0.55)]'
+                  )}
+                >
+                  <span className="relative">{countdown}s</span>
+                </motion.span>
+              ) : null}
+            </AnimatePresence>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleRunning}
+            disabled={loading || cardsCount === 0}
+            className={cn(
+              'inline-flex h-10 min-w-[6rem] items-center justify-center gap-1.5 rounded-xl border px-3 text-sm font-semibold tracking-wide transition-all',
+              running
+                ? 'border-red-400/50 bg-gradient-to-b from-red-900/80 to-red-950/90 text-red-100 shadow-[0_0_28px_-6px_rgba(248,113,113,0.55)]'
+                : 'border-emerald-400/50 bg-gradient-to-b from-emerald-800/70 to-emerald-950/90 text-emerald-50 shadow-[0_0_28px_-6px_rgba(52,211,153,0.5)]',
+              (loading || cardsCount === 0) && 'cursor-not-allowed opacity-50'
+            )}
+          >
+            <FontAwesomeIcon icon={running ? faStop : faPlay} className="h-3.5 w-3.5" />
+            <span>{loading ? ui.loadingShort : running ? ui.stopShort : ui.startShort}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleTestRevealAll}
+            disabled={loading || cardsCount === 0}
+            title={testRevealAll ? '恢复所有卡片为背面' : '临时测试：翻开全部单词牌'}
+            className={cn(
+              'inline-flex h-10 min-w-[3rem] items-center justify-center rounded-lg border px-2.5 text-xs font-medium transition-colors',
+              testRevealAll
+                ? 'border-amber-500/40 bg-amber-950/50 text-amber-300 hover:bg-amber-900/40'
+                : 'border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200',
+              (loading || cardsCount === 0) && 'cursor-not-allowed opacity-50'
+            )}
+          >
+            {testRevealAll ? ui.restore : ui.revealAll}
+          </button>
         </div>
       </header>
 

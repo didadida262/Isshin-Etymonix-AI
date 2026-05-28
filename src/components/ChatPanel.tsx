@@ -10,6 +10,8 @@ import { cn } from '../lib/cn';
 
 const POS_STORAGE_KEY = 'chat-panel-position';
 const VIEWPORT_MARGIN = 20;
+const MOBILE_INSET = 8;
+const MOBILE_BREAKPOINT = 768;
 /** 初次加载默认位置：顶栏下方、右侧（与轰炸页顶栏高度对齐） */
 const DEFAULT_COLLAPSED_TOP = 72;
 const PANEL_WIDTH = 380;
@@ -67,6 +69,9 @@ function ModelTag({
 export function ChatPanel() {
   const { settings, updateSettings } = useLlmSettings();
   const game = useGameSessionOptional();
+  const [isMobile, setIsMobile] = useState(
+    () => window.innerWidth <= MOBILE_BREAKPOINT
+  );
   const [collapsed, setCollapsed] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
   const [llmConnected, setLlmConnected] = useState(false);
@@ -77,6 +82,9 @@ export function ChatPanel() {
   const [error, setError] = useState('');
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [mobileExpandedHeight, setMobileExpandedHeight] = useState(() =>
+    Math.max(300, Math.min(Math.round(window.innerHeight * 0.62), 520))
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -94,12 +102,13 @@ export function ChatPanel() {
       const el = cardRef.current;
       const w = size?.width ?? el?.offsetWidth ?? PANEL_WIDTH;
       const h = size?.height ?? el?.offsetHeight ?? PANEL_HEIGHT;
+      const margin = isMobile ? MOBILE_INSET : VIEWPORT_MARGIN;
       return {
-        x: Math.max(VIEWPORT_MARGIN, Math.min(x, window.innerWidth - w - VIEWPORT_MARGIN)),
-        y: Math.max(VIEWPORT_MARGIN, Math.min(y, window.innerHeight - h - VIEWPORT_MARGIN)),
+        x: Math.max(margin, Math.min(x, window.innerWidth - w - margin)),
+        y: Math.max(margin, Math.min(y, window.innerHeight - h - margin)),
       };
     },
-    []
+    [isMobile]
   );
 
   const clampPositionForCollapsed = useCallback(
@@ -128,12 +137,12 @@ export function ChatPanel() {
     }
     setPosition(
       clampPositionForCollapsed(
-        window.innerWidth - COLLAPSED_WIDTH - VIEWPORT_MARGIN,
+        window.innerWidth - COLLAPSED_WIDTH - (isMobile ? MOBILE_INSET : VIEWPORT_MARGIN),
         DEFAULT_COLLAPSED_TOP,
         collapsed
       )
     );
-  }, [clampPositionForCollapsed, collapsed]);
+  }, [clampPositionForCollapsed, collapsed, isMobile]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -143,7 +152,14 @@ export function ChatPanel() {
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => initPosition());
-    const onResize = () => setPosition((p) => (p ? clampPosition(p.x, p.y) : p));
+    const onResize = () => {
+      const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
+      setIsMobile(mobile);
+      setMobileExpandedHeight(
+        Math.max(300, Math.min(Math.round(window.innerHeight * 0.62), 520))
+      );
+      setPosition((p) => (p ? clampPosition(p.x, p.y) : p));
+    };
     window.addEventListener('resize', onResize);
     return () => {
       cancelAnimationFrame(raf);
@@ -152,13 +168,14 @@ export function ChatPanel() {
   }, [initPosition, clampPosition]);
 
   useEffect(() => {
+    if (isMobile) return;
     if (isDraggingRef.current || !position) return;
     setPosition((p) => {
       if (!p) return p;
       const next = clampPositionForCollapsed(p.x, p.y, collapsed);
       return next.x === p.x && next.y === p.y ? p : next;
     });
-  }, [collapsed, clampPositionForCollapsed]);
+  }, [collapsed, clampPositionForCollapsed, isMobile, position]);
 
   /** 轰炸「开始」后自动展开判官面板 */
   useEffect(() => {
@@ -257,11 +274,18 @@ export function ChatPanel() {
   );
 
   const handleDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (position === null || e.button !== 0 || loading) return;
+    if (e.button !== 0 || loading) return;
     e.preventDefault();
     e.stopPropagation();
 
-    dragOffsetRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };
+    const fallbackPos = (() => {
+      if (position) return position;
+      const rect = cardRef.current?.getBoundingClientRect();
+      if (!rect) return { x: MOBILE_INSET, y: DEFAULT_COLLAPSED_TOP };
+      return clampPosition(rect.left, rect.top);
+    })();
+
+    dragOffsetRef.current = { x: e.clientX - fallbackPos.x, y: e.clientY - fallbackPos.y };
     pointerStartRef.current = { x: e.clientX, y: e.clientY };
     dragActiveRef.current = false;
     isDraggingRef.current = true;
@@ -395,6 +419,10 @@ export function ChatPanel() {
 
   const positioned = position !== null;
   const canSend = input.trim().length > 0 && !loading;
+  const panelWidth = isMobile ? `calc(100vw - ${MOBILE_INSET * 2}px)` : (collapsed ? COLLAPSED_WIDTH : PANEL_WIDTH);
+  const panelHeight = isMobile
+    ? (collapsed ? COLLAPSED_HEIGHT : mobileExpandedHeight)
+    : (collapsed ? COLLAPSED_HEIGHT : PANEL_HEIGHT);
 
   return (
     <motion.div
@@ -407,9 +435,9 @@ export function ChatPanel() {
       )}
       style={{
         left: positioned ? position.x : undefined,
-        top: positioned ? position.y : DEFAULT_COLLAPSED_TOP,
-        right: positioned ? 'auto' : VIEWPORT_MARGIN,
-        bottom: positioned ? 'auto' : undefined,
+        top: positioned ? position.y : (isMobile ? undefined : DEFAULT_COLLAPSED_TOP),
+        right: positioned ? 'auto' : (isMobile ? MOBILE_INSET : VIEWPORT_MARGIN),
+        bottom: positioned ? 'auto' : (isMobile ? MOBILE_INSET : undefined),
         borderRadius: collapsed ? COLLAPSED_RADIUS : PANEL_RADIUS,
         transition: isDragging ? 'none' : undefined,
         boxShadow: game?.canJudge
@@ -420,8 +448,8 @@ export function ChatPanel() {
       animate={{
         opacity: 1,
         scale: 1,
-        width: collapsed ? COLLAPSED_WIDTH : PANEL_WIDTH,
-        height: collapsed ? COLLAPSED_HEIGHT : PANEL_HEIGHT,
+        width: panelWidth,
+        height: panelHeight,
       }}
       transition={isDragging ? { duration: 0 } : panelTransition}
       onAnimationComplete={() => {
@@ -435,9 +463,9 @@ export function ChatPanel() {
             'flex h-10 shrink-0 items-center gap-2 px-2.5',
             !collapsed && 'border-b border-white/[0.1] bg-white/[0.03]'
           )}
-          style={{ cursor: loading ? 'default' : isDragging ? 'grabbing' : 'grab' }}
+          style={{ cursor: isMobile ? 'default' : (loading ? 'default' : isDragging ? 'grabbing' : 'grab') }}
           onPointerDown={handleDragStart}
-          title="拖动移动"
+          title={isMobile ? '判官面板' : '拖动移动'}
         >
           <span
             className={cn(
@@ -565,6 +593,11 @@ export function ChatPanel() {
                       ? 'animate-judge-input-prompt border-cyan-400/50 bg-cyan-950/25'
                       : 'border-white/10 bg-white/[0.04]'
                   )}
+                  style={
+                    isMobile
+                      ? { paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }
+                      : undefined
+                  }
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <textarea
