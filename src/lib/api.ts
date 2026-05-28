@@ -1,8 +1,7 @@
 import type { LlmSettings } from '../context/LlmSettingsContext';
-import { MODELS_API_URL } from './llmEndpoints';
-import { parseModelsPayload } from './parseModels';
 
 const API_BASE = '/api';
+const CHAT_TIMEOUT_MS = 95_000;
 
 export interface ChatMessagePayload {
   role: 'user' | 'assistant';
@@ -22,12 +21,10 @@ export interface JudgeResult {
   feedback: string;
 }
 
-/** 模型列表：直连第三方，不经本站 /api */
+/** 模型列表：经本站 /api 代理，避免浏览器 CORS */
 export async function fetchModels(apiKey: string): Promise<string[]> {
-  const url = new URL(MODELS_API_URL);
-  url.searchParams.set('api_key', apiKey);
-
-  const res = await fetch(url.toString());
+  const params = new URLSearchParams({ api_key: apiKey });
+  const res = await fetch(`${API_BASE}/models?${params}`);
   if (!res.ok) {
     let detail = await res.text().catch(() => '');
     try {
@@ -38,9 +35,8 @@ export async function fetchModels(apiKey: string): Promise<string[]> {
     }
     throw new Error(detail || `获取模型列表失败 (${res.status})`);
   }
-
-  const payload: unknown = await res.json();
-  return parseModelsPayload(payload);
+  const data = (await res.json()) as { models?: string[] };
+  return data.models ?? [];
 }
 
 function parseSsePayload(line: string): { content?: string; error?: string } | null {
@@ -60,8 +56,10 @@ export async function sendChatStream(
   history: ChatMessagePayload[],
   settings: LlmSettings,
   onDelta: (delta: string) => void,
-  signal?: AbortSignal
+  options?: { signal?: AbortSignal; onConnected?: () => void }
 ): Promise<void> {
+  const abortSignal = options?.signal ?? AbortSignal.timeout(CHAT_TIMEOUT_MS);
+
   const res = await fetch(`${API_BASE}/chat/stream`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -71,8 +69,10 @@ export async function sendChatStream(
       api_key: settings.apiKey,
       model: settings.model,
     }),
-    signal,
+    signal: abortSignal,
   });
+
+  options?.onConnected?.();
 
   if (!res.ok) {
     let detail = await res.text().catch(() => '');
@@ -145,15 +145,33 @@ export async function sendJudge(
   return { verdict, feedback: data.feedback ?? '' };
 }
 
-/** 测试大模型连通性：走本站 Agent（/api） */
+/** 测试连通性：短 prompt，响应更快 */
 export async function testLlmConnection(
   settings: Pick<LlmSettings, 'apiKey' | 'model'>
 ): Promise<string> {
-  return sendChat('请只回复 OK', [], {
-    apiKey: settings.apiKey,
-    model: settings.model,
-    models: [],
+  const res = await fetch(`${API_BASE}/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_key: settings.apiKey,
+      model: settings.model,
+    }),
+    signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
   });
+
+  if (!res.ok) {
+    let detail = await res.text().catch(() => '');
+    try {
+      const json = JSON.parse(detail) as { detail?: string };
+      detail = json.detail ?? detail;
+    } catch {
+      /* use raw text */
+    }
+    throw new Error(detail || `测试失败 (${res.status})`);
+  }
+
+  const data = (await res.json()) as { reply: string };
+  return data.reply ?? '';
 }
 
 export async function sendChat(

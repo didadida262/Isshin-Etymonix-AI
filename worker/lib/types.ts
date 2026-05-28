@@ -22,3 +22,7 @@ export interface JudgeRequest {
 
 /** 第三方大模型补全（写死，仅 Agent 层调用） */
 export const LLM_BASE_URL = 'https://aiplatform.njsrd.com/llm/v1';
+
+/** 第三方模型列表（服务端代理，避免浏览器 CORS） */
+export const MODELS_API_URL =
+  'https://aiplatform.njsrd.com/nexus/api/api-keys/models';

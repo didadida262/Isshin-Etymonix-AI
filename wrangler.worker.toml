@@ -3,6 +3,10 @@ compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 main = "./worker/index.ts"
 
+# 将 Worker 调度到离 LLM 上游更近的节点，降低线上 /api → aiplatform 往返延迟
+[placement]
+hostname = "aiplatform.njsrd.com"
+
 [assets]
 directory = "./dist/client"
 not_found_handling = "single-page-application"

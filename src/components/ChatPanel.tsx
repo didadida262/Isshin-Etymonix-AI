@@ -73,6 +73,7 @@ export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [streamConnected, setStreamConnected] = useState(false);
   const [error, setError] = useState('');
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -313,6 +314,7 @@ export function ChatPanel() {
     setInput('');
     setError('');
     setLoading(true);
+    setStreamConnected(false);
 
     const assistantId = ++idCounter;
 
@@ -334,21 +336,33 @@ export function ChatPanel() {
         const reply = `${verdictColor} 【裁决】${result.verdict}\n\n${result.feedback}`;
         setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: reply }]);
       } else {
+        setMessages((prev) => [
+          ...prev,
+          { id: assistantId, role: 'assistant', content: '' },
+        ]);
         const history: ChatMessagePayload[] = messages.map((m) => ({
           role: m.role,
           content: m.content,
         }));
-        await sendChatStream(text, history, settings, (delta) => {
-          setMessages((prev) => {
-            const existing = prev.find((m) => m.id === assistantId);
-            if (!existing) {
-              return [...prev, { id: assistantId, role: 'assistant', content: delta }];
-            }
-            return prev.map((m) =>
-              m.id === assistantId ? { ...m, content: m.content + delta } : m
-            );
-          });
-        });
+        await sendChatStream(
+          text,
+          history,
+          settings,
+          (delta) => {
+            setMessages((prev) => {
+              const existing = prev.find((m) => m.id === assistantId);
+              if (!existing) {
+                return [...prev, { id: assistantId, role: 'assistant', content: delta }];
+              }
+              return prev.map((m) =>
+                m.id === assistantId ? { ...m, content: m.content + delta } : m
+              );
+            });
+          },
+          {
+            onConnected: () => setStreamConnected(true),
+          }
+        );
         setMessages((prev) => {
           const hasReply = prev.some((m) => m.id === assistantId && m.content.trim());
           if (hasReply) return prev;
@@ -367,6 +381,7 @@ export function ChatPanel() {
       ]);
     } finally {
       setLoading(false);
+      setStreamConnected(false);
       textareaRef.current?.focus();
     }
   }, [game, input, loading, messages, settings]);
@@ -522,7 +537,11 @@ export function ChatPanel() {
                       style={{ background: 'rgba(255,255,255,0.06)' }}
                     >
                       <FontAwesomeIcon icon={faSpinner} className="animate-spin text-indigo-400" />
-                      {game?.canJudge ? '阅卷中...' : '思考中...'}
+                      {game?.canJudge
+                        ? '阅卷中...'
+                        : streamConnected
+                          ? '模型生成中...'
+                          : '连接判官中...'}
                     </div>
                   </div>
                 )}
