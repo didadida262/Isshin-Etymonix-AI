@@ -5,6 +5,7 @@ import { useCallback, useLayoutEffect, useRef, useState, useEffect } from 'react
 import React from 'react';
 import { AmbientBackdrop } from '../components/AmbientBackdrop';
 import { SettingsButton } from '../components/SettingsButton';
+import { SiteBrand } from '../components/SiteBrand';
 import { useSettingsModal } from '../context/SettingsModalContext';
 import { getAvailableRootUnits } from '../data/rootUnits';
 import type { RootUnit } from '../types/rootUnit';
@@ -122,9 +123,7 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
       <AmbientBackdrop />
 
       <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-zinc-950/20 px-4 py-3 md:px-6 md:py-4 backdrop-blur-md">
-        <h1 className="font-display text-xl font-semibold tracking-tight text-white md:text-2xl">
-          {t.title}
-        </h1>
+        <SiteBrand title={t.title} />
 
         <div className="flex items-center gap-2">
           <SettingsButton onClick={openSettings} />

@@ -2,6 +2,7 @@ import { faGlobe, faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FinaleOverlay } from '../components/FinaleOverlay';
 import { SettingsButton } from '../components/SettingsButton';
+import { ParticleLogo } from '../components/ParticleLogo';
 import { MAX_ROUNDS, useGameSession } from '../context/GameSessionContext';
 import { useAppLanguage } from '../context/AppLanguageContext';
 import { useSettingsModal } from '../context/SettingsModalContext';
@@ -358,12 +359,16 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 
       <header className="relative z-40 sticky top-0 flex flex-col gap-2 border-b border-white/[0.08] bg-zinc-950/70 px-3 py-2.5 backdrop-blur-xl md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2 md:grid md:h-12 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
-          <h1 className="min-w-0 font-display text-sm font-semibold tracking-tight text-white md:text-lg">
-            <span className="hidden md:inline">
-              Unit {unitId} · {ui.titleSuffix}
-            </span>
-            <span className="md:hidden">Unit {unitId}</span>
-          </h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <ParticleLogo size={32} className="hidden sm:block" />
+            <ParticleLogo size={28} className="sm:hidden" />
+            <h1 className="min-w-0 font-display text-sm font-semibold tracking-tight text-white md:text-lg">
+              <span className="hidden md:inline">
+                Unit {unitId} · {ui.titleSuffix}
+              </span>
+              <span className="md:hidden">Unit {unitId}</span>
+            </h1>
+          </div>
 
           <div className="hidden md:flex md:h-12 md:items-center md:justify-center md:gap-2.5">
               <div
