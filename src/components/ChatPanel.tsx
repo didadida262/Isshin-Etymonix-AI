@@ -2,9 +2,11 @@ import { faArrowUp, faChevronDown, faChevronUp, faSpinner } from '@fortawesome/f
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAppLanguage } from '../context/AppLanguageContext';
 import { useGameSessionOptional } from '../context/GameSessionContext';
 import { useLlmSettings } from '../context/LlmSettingsContext';
 import { fetchModels, sendChatStream, sendJudge, type ChatMessagePayload } from '../lib/api';
+import { getChatUi } from '../lib/chatUiI18n';
 import { Scoreboard } from './Scoreboard';
 import { cn } from '../lib/cn';
 
@@ -39,15 +41,15 @@ function ModelTag({
   model,
   loading,
   collapsed,
+  t,
 }: {
   model: string;
   loading: boolean;
   collapsed: boolean;
+  t: ReturnType<typeof getChatUi>;
 }) {
-  const label = loading ? '检测中' : model.trim() || '未配置';
-  const title = model.trim()
-    ? `当前模型：${model}（在设置中切换）`
-    : '请在设置中配置并选择模型';
+  const label = loading ? t.modelChecking : model.trim() || t.modelNotConfigured;
+  const title = model.trim() ? t.modelCurrent(model) : t.modelConfigureHint;
 
   return (
     <span
@@ -71,6 +73,8 @@ function ModelTag({
 }
 
 export function ChatPanel() {
+  const { lang } = useAppLanguage();
+  const t = getChatUi(lang);
   const { settings, updateSettings } = useLlmSettings();
   const game = useGameSessionOptional();
   const [isMobile, setIsMobile] = useState(
@@ -346,7 +350,7 @@ export function ChatPanel() {
     if (!text || loading) return;
 
     if (!settings.apiKey.trim() || !settings.model.trim()) {
-      setError('请先在顶部设置中配置 API Key 和模型');
+      setError(t.settingsRequired);
       return;
     }
 
@@ -376,7 +380,9 @@ export function ChatPanel() {
           );
           game.recordVerdict(result.verdict);
           const verdictColor = result.verdict === '正确' ? '✅' : '❌';
-          const reply = `${verdictColor} 【裁决】${result.verdict}\n\n${result.feedback}`;
+          const verdictLabel =
+            result.verdict === '正确' ? t.verdictCorrect : t.verdictWrong;
+          const reply = `${verdictColor} ${t.verdictHeading}${verdictLabel}\n\n${result.feedback}`;
           setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: reply }]);
         } finally {
           game.setJudging(false);
@@ -412,25 +418,25 @@ export function ChatPanel() {
         setMessages((prev) => {
           const hasReply = prev.some((m) => m.id === assistantId && m.content.trim());
           if (hasReply) return prev;
-          return [...prev, { id: assistantId, role: 'assistant', content: '（无回复内容）' }];
+          return [...prev, { id: assistantId, role: 'assistant', content: t.noReply }];
         });
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '请求失败';
+      const msg = err instanceof Error ? err.message : t.requestFailed;
       setError(msg);
       if (/api\s*key|认证|连接|网络|401|403|fetch/i.test(msg)) {
         setLlmConnected(false);
       }
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== assistantId),
-        { id: assistantId, role: 'assistant', content: `错误：${msg}` },
+        { id: assistantId, role: 'assistant', content: `${t.errorPrefix}${msg}` },
       ]);
     } finally {
       setLoading(false);
       setStreamConnected(false);
       textareaRef.current?.focus();
     }
-  }, [game, input, loading, messages, settings]);
+  }, [game, input, loading, messages, settings, t]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -492,7 +498,7 @@ export function ChatPanel() {
             touchAction: 'none',
           }}
           onPointerDown={handleDragStart}
-          title={isMobile ? '判官面板' : '拖动移动'}
+          title={isMobile ? t.panelTitle : t.dragTitle}
         >
           <span
             className={cn(
@@ -503,10 +509,10 @@ export function ChatPanel() {
             )}
             title={
               llmConnected
-                ? '大模型已连接'
+                ? t.llmConnected
                 : loadingModels
-                  ? '正在检测大模型连接…'
-                  : '大模型未连接，请在设置中配置 API Key 并获取模型'
+                  ? t.llmChecking
+                  : t.llmDisconnected
             }
           />
           <span
@@ -515,18 +521,19 @@ export function ChatPanel() {
               collapsed ? 'text-sm tracking-wide' : 'text-xs'
             )}
           >
-            判官
+            {t.judgeName}
           </span>
           <ModelTag
             model={settings.model}
             loading={loadingModels}
             collapsed={collapsed}
+            t={t}
           />
           <button
             type="button"
-            aria-label={collapsed ? '展开判官' : '收起判官'}
+            aria-label={collapsed ? t.expandJudge : t.collapseJudge}
             aria-expanded={!collapsed}
-            title={collapsed ? '展开' : '收起'}
+            title={collapsed ? t.expand : t.collapse}
             className="inline-flex shrink-0 items-center justify-center p-0.5 text-white/45 transition-colors hover:text-white/75"
             onClick={() => {
               setCollapsed((v) => {
@@ -559,6 +566,18 @@ export function ChatPanel() {
                 ref={scrollRef}
                 className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3"
               >
+                {messages.length === 0 && !loading && (
+                  <div className="flex min-h-[140px] flex-col items-center justify-center px-2 py-6 text-center">
+                    <p className="text-sm font-medium text-cyan-200/90">{t.emptyTitle}</p>
+                    <p className="mt-2 max-w-[260px] text-xs leading-relaxed text-white/40">
+                      {game?.canJudge && game.currentCard
+                        ? t.emptyCanJudge(game.currentCard.word)
+                        : game?.active
+                          ? t.emptyAfterJudge
+                          : t.emptyIdle}
+                    </p>
+                  </div>
+                )}
                 {messages.map((msg) => {
                   if (msg.role === 'assistant' && !msg.content.trim()) return null;
                   return (
@@ -593,10 +612,10 @@ export function ChatPanel() {
                     >
                       <FontAwesomeIcon icon={faSpinner} className="animate-spin text-indigo-400" />
                       {game?.canJudge
-                        ? '阅卷中...'
+                        ? t.judging
                         : streamConnected
-                          ? '模型生成中...'
-                          : '连接判官中...'}
+                          ? t.generating
+                          : t.connecting}
                     </div>
                   </div>
                 )}
@@ -610,7 +629,7 @@ export function ChatPanel() {
                 {showJudgeInputPrompt && (
                   <p className="mb-2 flex items-center gap-2 text-xs font-medium text-cyan-300/95">
                     <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400 animate-pulse" />
-                    请在此输入词根解释，Enter 发送阅卷
+                    {t.judgeInputPrompt}
                   </p>
                 )}
                 <div
@@ -635,10 +654,10 @@ export function ChatPanel() {
                     onKeyDown={handleKeyDown}
                     placeholder={
                       game?.canJudge && game.currentCard
-                        ? `解释「${game.currentCard.word}」词根含义，发送阅卷`
+                        ? t.placeholderCanJudge(game.currentCard.word)
                         : game?.active
-                          ? '本轮已阅卷，可继续向判官提问'
-                          : '输入消息，Enter 发送，Shift+Enter 换行'
+                          ? t.placeholderAfterJudge
+                          : t.placeholderIdle
                     }
                     disabled={loading}
                     className={cn(
@@ -658,7 +677,7 @@ export function ChatPanel() {
                         ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
                         : 'rgba(255,255,255,0.1)',
                     }}
-                    title="发送"
+                    title={t.send}
                   >
                     {loading ? (
                       <FontAwesomeIcon icon={faSpinner} className="h-3.5 w-3.5 animate-spin text-white" />

@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
+import { useAppLanguage } from '../context/AppLanguageContext';
 import { useGameSessionOptional } from '../context/GameSessionContext';
+import { getScoreboardUi } from '../lib/chatUiI18n';
 import { cn } from '../lib/cn';
 
 type ScoreboardProps = {
@@ -8,6 +10,8 @@ type ScoreboardProps = {
 };
 
 export function Scoreboard({ embedded = false }: ScoreboardProps) {
+  const { lang } = useAppLanguage();
+  const t = getScoreboardUi(lang);
   const game = useGameSessionOptional();
   if (!game?.active) return null;
 
@@ -23,13 +27,13 @@ export function Scoreboard({ embedded = false }: ScoreboardProps) {
       )}
     >
       <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-400">
-        第 <span className="font-mono text-cyan-300">{round}</span>/{maxRounds} 轮
+        {t.round(round, maxRounds)}
       </span>
       <span className="rounded-lg border border-emerald-500/25 bg-emerald-950/40 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
-        正确 {correct}
+        {t.correct(correct)}
       </span>
       <span className="rounded-lg border border-rose-500/25 bg-rose-950/40 px-2.5 py-1 text-[11px] font-medium text-rose-300">
-        错误 {wrong}
+        {t.wrong(wrong)}
       </span>
       {lastVerdict && (
         <motion.span
@@ -43,7 +47,7 @@ export function Scoreboard({ embedded = false }: ScoreboardProps) {
               : 'bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/40'
           )}
         >
-          上轮·{lastVerdict}
+          {t.lastVerdict(lastVerdict)}
         </motion.span>
       )}
     </motion.div>

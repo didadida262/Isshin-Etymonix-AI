@@ -1,9 +1,9 @@
-import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEyeSlash, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLlmSettings, type LlmSettings } from '../context/LlmSettingsContext';
-import { LLM_BASE_URL, MODELS_API_URL } from '../lib/llmEndpoints';
+import { LLM_BASE_URL } from '../lib/llmEndpoints';
 import { fetchModels, testLlmConnection } from '../lib/api';
 import { cn } from '../lib/cn';
 
@@ -28,6 +28,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState('');
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
   const modelListRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       setModels(settings.models);
       setError('');
       setTestResult(null);
+      setShowApiKey(false);
     }
   }, [open, settings]);
 
@@ -194,24 +196,53 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               <SectionTitle>基础配置</SectionTitle>
               <div className="space-y-3">
                 <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] leading-relaxed text-zinc-500">
-                  模型列表：
-                  <span className="block truncate text-zinc-400">{MODELS_API_URL}</span>
-                  对话补全（Agent 调用）：
-                  <span className="block truncate text-zinc-400">{LLM_BASE_URL}</span>
+                  获取 API Key 请访问：
+                  <a
+                    href="https://aiplatform.njsrd.com/nexus/?invite_code=6UFELQ"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-0.5 block break-all text-cyan-400/90 hover:text-cyan-300 hover:underline"
+                  >
+                    https://aiplatform.njsrd.com/nexus/?invite_code=6UFELQ
+                  </a>
                 </p>
 
                 <label className="block">
-                  <span className="mb-1 block text-xs text-zinc-400">API Key</span>
+                  <span className="mb-1 block text-xs text-zinc-400">BaseUrl</span>
                   <input
-                    type="password"
-                    value={draft.apiKey}
-                    onChange={(e) => {
-                      setDraft((d) => ({ ...d, apiKey: e.target.value }));
-                      setTestResult(null);
-                    }}
-                    placeholder="sk-..."
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/40"
+                    type="text"
+                    readOnly
+                    value={LLM_BASE_URL}
+                    className="w-full cursor-default rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-400 outline-none"
                   />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-xs text-zinc-400">API Key</span>
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={draft.apiKey}
+                      onChange={(e) => {
+                        setDraft((d) => ({ ...d, apiKey: e.target.value }));
+                        setTestResult(null);
+                      }}
+                      placeholder="sk-..."
+                      className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-3 pr-10 text-sm text-white outline-none focus:border-cyan-500/40"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((v) => !v)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 transition-colors hover:text-zinc-300"
+                      aria-label={showApiKey ? '隐藏 API Key' : '显示 API Key'}
+                      title={showApiKey ? '隐藏' : '显示'}
+                    >
+                      <FontAwesomeIcon
+                        icon={showApiKey ? faEyeSlash : faEye}
+                        className="h-4 w-4"
+                      />
+                    </button>
+                  </div>
                 </label>
               </div>
             </section>
