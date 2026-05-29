@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppLanguage } from '../context/AppLanguageContext';
 import { useGameSessionOptional } from '../context/GameSessionContext';
 import { useLlmSettings } from '../context/LlmSettingsContext';
-import { fetchModels, sendChatStream, sendJudge, type ChatMessagePayload } from '../lib/api';
+import { fetchModels, sendChatStream, sendJudgeStream, type ChatMessagePayload } from '../lib/api';
 import { getChatUi } from '../lib/chatUiI18n';
 import { Scoreboard } from './Scoreboard';
 import { cn } from '../lib/cn';
@@ -51,7 +51,6 @@ export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [streamConnected, setStreamConnected] = useState(false);
   const [error, setError] = useState('');
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -324,7 +323,6 @@ export function ChatPanel() {
     setInput('');
     setError('');
     setLoading(true);
-    setStreamConnected(false);
 
     const assistantId = ++idCounter;
 
@@ -332,8 +330,12 @@ export function ChatPanel() {
       if (game?.canJudge && game.currentCard) {
         const card = game.currentCard;
         game.setJudging(true);
+        setMessages((prev) => [
+          ...prev,
+          { id: assistantId, role: 'assistant', content: '' },
+        ]);
         try {
-          const result = await sendJudge(
+          const result = await sendJudgeStream(
             {
               word: card.word,
               definition: card.definition,
@@ -341,14 +343,27 @@ export function ChatPanel() {
               rootMeaning: card.rootMeaning,
               userExplanation: text,
             },
-            settings
+            settings,
+            (delta) => {
+              setMessages((prev) => {
+                const existing = prev.find((m) => m.id === assistantId);
+                if (!existing) {
+                  return [...prev, { id: assistantId, role: 'assistant', content: delta }];
+                }
+                return prev.map((m) =>
+                  m.id === assistantId ? { ...m, content: m.content + delta } : m
+                );
+              });
+            }
           );
           game.recordVerdict(result.verdict);
           const verdictColor = result.verdict === '正确' ? '✅' : '❌';
           const verdictLabel =
             result.verdict === '正确' ? t.verdictCorrect : t.verdictWrong;
           const reply = `${verdictColor} ${t.verdictHeading}${verdictLabel}\n\n${result.feedback}`;
-          setMessages((prev) => [...prev, { id: assistantId, role: 'assistant', content: reply }]);
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, content: reply } : m))
+          );
         } finally {
           game.setJudging(false);
         }
@@ -375,9 +390,6 @@ export function ChatPanel() {
                 m.id === assistantId ? { ...m, content: m.content + delta } : m
               );
             });
-          },
-          {
-            onConnected: () => setStreamConnected(true),
           }
         );
         setMessages((prev) => {
@@ -398,7 +410,6 @@ export function ChatPanel() {
       ]);
     } finally {
       setLoading(false);
-      setStreamConnected(false);
       textareaRef.current?.focus();
     }
   }, [game, input, loading, messages, settings, t]);
@@ -538,7 +549,13 @@ export function ChatPanel() {
                   </div>
                 )}
                 {messages.map((msg) => {
-                  if (msg.role === 'assistant' && !msg.content.trim()) return null;
+                  const isThinkingBubble =
+                    msg.role === 'assistant' &&
+                    !msg.content.trim() &&
+                    loading;
+                  if (msg.role === 'assistant' && !msg.content.trim() && !isThinkingBubble) {
+                    return null;
+                  }
                   return (
                     <div
                       key={msg.id}
@@ -558,26 +575,21 @@ export function ChatPanel() {
                               : 'none',
                         }}
                       >
-                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        {isThinkingBubble ? (
+                          <div className="flex items-center gap-2 text-xs text-white/45">
+                            <FontAwesomeIcon
+                              icon={faSpinner}
+                              className="animate-spin text-indigo-400"
+                            />
+                            {game?.canJudge ? t.judging : t.thinking}
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        )}
                       </div>
                     </div>
                   );
                 })}
-                {loading && (
-                  <div className="flex justify-start">
-                    <div
-                      className="flex items-center gap-2 rounded-2xl px-3 py-2 text-xs text-white/40"
-                      style={{ background: 'rgba(255,255,255,0.06)' }}
-                    >
-                      <FontAwesomeIcon icon={faSpinner} className="animate-spin text-indigo-400" />
-                      {game?.canJudge
-                        ? t.judging
-                        : streamConnected
-                          ? t.generating
-                          : t.connecting}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {error && (

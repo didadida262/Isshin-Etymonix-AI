@@ -39,7 +39,12 @@ export async function fetchModels(apiKey: string): Promise<string[]> {
   return data.models ?? [];
 }
 
-function parseSsePayload(line: string): { content?: string; error?: string } | null {
+function parseSsePayload(line: string): {
+  content?: string;
+  error?: string;
+  verdict?: string;
+  feedback?: string;
+} | null {
   if (!line.startsWith('data: ')) return null;
   const payload = line.slice(6).trim();
   if (payload === '[DONE]') return null;
@@ -108,6 +113,76 @@ export async function sendChatStream(
       if (parsed.content) onDelta(parsed.content);
     }
   }
+}
+
+/** 阅卷：SSE 流式，走本站 Agent（/api） */
+export async function sendJudgeStream(
+  payload: JudgePayload,
+  settings: LlmSettings,
+  onDelta: (delta: string) => void,
+  options?: { signal?: AbortSignal }
+): Promise<JudgeResult> {
+  const abortSignal = options?.signal ?? AbortSignal.timeout(CHAT_TIMEOUT_MS);
+
+  const res = await fetch(`${API_BASE}/judge/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      word: payload.word,
+      definition: payload.definition,
+      root: payload.root,
+      root_meaning: payload.rootMeaning,
+      user_explanation: payload.userExplanation,
+      api_key: settings.apiKey,
+      model: settings.model,
+    }),
+    signal: abortSignal,
+  });
+
+  if (!res.ok) {
+    let detail = await res.text().catch(() => '');
+    try {
+      const json = JSON.parse(detail) as { detail?: string };
+      detail = json.detail ?? detail;
+    } catch {
+      /* use raw text */
+    }
+    throw new Error(detail || `阅卷失败 (${res.status})`);
+  }
+
+  if (!res.body) {
+    throw new Error('服务器未返回流式数据');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let lineBuffer = '';
+  let result: JudgeResult | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    lineBuffer += decoder.decode(value, { stream: true });
+    const lines = lineBuffer.split('\n');
+    lineBuffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const parsed = parseSsePayload(line);
+      if (!parsed) continue;
+      if (parsed.error) throw new Error(parsed.error);
+      if (parsed.verdict) {
+        const verdict = parsed.verdict.includes('正确') ? '正确' : '错误';
+        result = { verdict, feedback: parsed.feedback ?? '' };
+      }
+      if (parsed.content) onDelta(parsed.content);
+    }
+  }
+
+  if (!result) {
+    throw new Error('阅卷未返回裁决结果');
+  }
+  return result;
 }
 
 /** 阅卷：走本站 Agent（/api） */

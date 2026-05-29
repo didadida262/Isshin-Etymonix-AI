@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 
 import { runChat, runQuickTest, streamChat } from './lib/chat';
-import { runJudge } from './lib/judge';
+import { parseJudgeResponse, runJudge, streamJudge } from './lib/judge';
 import { fetchModels } from './lib/models';
 import {
   type ChatRequest,
@@ -77,6 +77,66 @@ app.post('/judge', async (c) => {
     const message = e instanceof Error ? e.message : String(e);
     return c.json({ detail: message }, 500);
   }
+});
+
+app.post('/judge/stream', async (c) => {
+  const req = await c.req.json<JudgeRequest>();
+  const err = validateChatFields({
+    api_key: req.api_key,
+    model: req.model,
+    message: req.user_explanation,
+  });
+  if (err) return c.json({ detail: err }, 400);
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (payload: Record<string, string>) => {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify(payload)}\n\n`)
+        );
+      };
+
+      const keepalive = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(': keepalive\n\n'));
+        } catch {
+          /* stream closed */
+        }
+      }, 12_000);
+
+      let accumulated = '';
+
+      try {
+        send({ content: '' });
+        for await (const delta of streamJudge(
+          req.word.trim(),
+          req.definition.trim(),
+          req.root.trim(),
+          req.root_meaning.trim(),
+          req.user_explanation.trim(),
+          req.api_key.trim(),
+          req.model.trim()
+        )) {
+          if (delta) {
+            accumulated += delta;
+            send({ content: delta });
+          }
+        }
+        const result = parseJudgeResponse(accumulated);
+        send({ verdict: result.verdict, feedback: result.feedback });
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        send({ error: message });
+      } finally {
+        clearInterval(keepalive);
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, { headers: SSE_HEADERS });
 });
 
 app.post('/chat/stream', async (c) => {

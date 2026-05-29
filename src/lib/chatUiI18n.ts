@@ -23,6 +23,7 @@ export const CHAT_UI = {
     emptyCanJudge: (word: string) =>
       `看牌后，在下方输入「${word}」的词根解释，发送后由我阅卷裁定。`,
     judging: '阅卷中...',
+    thinking: '思考中...',
     generating: '模型生成中...',
     connecting: '连接判官中...',
     judgeInputPrompt: '请在此输入词根解释，Enter 发送阅卷',
@@ -60,6 +61,7 @@ export const CHAT_UI = {
     emptyCanJudge: (word: string) =>
       `After viewing the card, explain the root of “${word}” below and send for grading.`,
     judging: 'Grading…',
+    thinking: 'Thinking…',
     generating: 'Generating…',
     connecting: 'Connecting to Judge…',
     judgeInputPrompt: 'Enter your root explanation here. Press Enter to submit.',
