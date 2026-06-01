@@ -6,6 +6,13 @@ import { useAppLanguage } from '../context/AppLanguageContext';
 import { useGameSessionOptional } from '../context/GameSessionContext';
 import { useLlmSettings } from '../context/LlmSettingsContext';
 import { fetchModels, sendChatStream, sendJudgeStream, type ChatMessagePayload } from '../lib/api';
+import {
+  DOCKED_COLLAPSED_HEIGHT,
+  DOCKED_INSET,
+  DOCKED_MAX_WIDTH,
+  getDockedExpandedHeight,
+  getDockedWidth,
+} from '../lib/chatDockLayout';
 import { getChatUi } from '../lib/chatUiI18n';
 import { Scoreboard } from './Scoreboard';
 import { cn } from '../lib/cn';
@@ -23,7 +30,7 @@ const DEFAULT_COLLAPSED_TOP = 72;
 const PANEL_WIDTH = 380;
 const PANEL_HEIGHT = 480;
 const COLLAPSED_WIDTH = 112;
-const COLLAPSED_HEIGHT = 40;
+const COLLAPSED_HEIGHT = DOCKED_COLLAPSED_HEIGHT;
 const PANEL_RADIUS = 12;
 const COLLAPSED_RADIUS = 8;
 
@@ -60,6 +67,10 @@ export function ChatPanel() {
       Math.min(Math.round(window.innerHeight * 0.42), MOBILE_EXPANDED_MAX_HEIGHT)
     )
   );
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -130,23 +141,24 @@ export function ChatPanel() {
     const onResize = () => {
       const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
       setIsMobile(mobile);
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
       setMobileExpandedHeight(
         Math.max(
           MOBILE_EXPANDED_MIN_HEIGHT,
           Math.min(Math.round(window.innerHeight * 0.42), MOBILE_EXPANDED_MAX_HEIGHT)
         )
       );
-      setPosition((p) => (p ? clampPosition(p.x, p.y) : p));
+      setPosition((p) => (p && !game?.active ? clampPosition(p.x, p.y) : p));
     };
     window.addEventListener('resize', onResize);
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
     };
-  }, [initPosition, clampPosition]);
+  }, [game?.active, initPosition, clampPosition]);
 
   useEffect(() => {
-    if (isMobile) return;
+    if (isMobile || game?.active) return;
     if (isDraggingRef.current || !position) return;
     setPosition((p) => {
       if (!p) return p;
@@ -155,18 +167,15 @@ export function ChatPanel() {
     });
   }, [collapsed, clampPositionForCollapsed, isMobile, position]);
 
-  /** 轰炸「开始」后自动展开判官面板 */
+  /** 开始答题后：底部贴边、全宽（有上限），并自动展开 */
   useEffect(() => {
     if (game?.active) {
       setCollapsed(false);
-      if (isMobile) {
-        // 移动端开始轰炸时强制回到底部锚点，并清理历史拖拽坐标
-        localStorage.removeItem(POS_STORAGE_KEY);
-        setPosition(null);
-        requestAnimationFrame(() => setPosition(null));
-      }
+      setPosition(null);
+    } else {
+      requestAnimationFrame(() => initPosition());
     }
-  }, [game?.active, isMobile]);
+  }, [game?.active, initPosition]);
 
   const showJudgeInputPrompt = !collapsed && !!game?.canJudge;
 
@@ -258,7 +267,7 @@ export function ChatPanel() {
   );
 
   const handleDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 || loading) return;
+    if (game?.active || e.button !== 0 || loading) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -421,17 +430,37 @@ export function ChatPanel() {
     }
   };
 
-  const positioned = position !== null;
+  const isDocked = !!game?.active;
+  const positioned = !isDocked && position !== null;
   const canSend = input.trim().length > 0 && !loading;
-  const panelWidth = isMobile
-    ? (collapsed ? MOBILE_COLLAPSED_WIDTH : MOBILE_EXPANDED_WIDTH)
-    : (collapsed ? COLLAPSED_WIDTH : PANEL_WIDTH);
-  const panelHeight = isMobile
-    ? (collapsed ? COLLAPSED_HEIGHT : mobileExpandedHeight)
-    : (collapsed ? COLLAPSED_HEIGHT : PANEL_HEIGHT);
+  const dockedWidth = getDockedWidth(viewportSize.width);
+  const dockedExpandedHeight = getDockedExpandedHeight(viewportSize.height);
+
+  const panelWidth = isDocked
+    ? dockedWidth
+    : isMobile
+      ? collapsed
+        ? MOBILE_COLLAPSED_WIDTH
+        : MOBILE_EXPANDED_WIDTH
+      : collapsed
+        ? COLLAPSED_WIDTH
+        : PANEL_WIDTH;
+  const panelHeight = isDocked
+    ? collapsed
+      ? COLLAPSED_HEIGHT
+      : dockedExpandedHeight
+    : isMobile
+      ? collapsed
+        ? COLLAPSED_HEIGHT
+        : mobileExpandedHeight
+      : collapsed
+        ? COLLAPSED_HEIGHT
+        : PANEL_HEIGHT;
+  const dockedRadius = collapsed ? COLLAPSED_RADIUS : PANEL_RADIUS;
 
   return (
     <motion.div
+      id="judge-chat-panel"
       ref={cardRef}
       className={cn(
         'fixed z-50 flex flex-col overflow-hidden select-none',
@@ -440,11 +469,20 @@ export function ChatPanel() {
         !collapsed && game?.canJudge && 'border-cyan-400/50'
       )}
       style={{
-        left: positioned ? position.x : undefined,
-        top: positioned ? position.y : (isMobile ? undefined : DEFAULT_COLLAPSED_TOP),
-        right: positioned ? 'auto' : (isMobile ? MOBILE_INSET : VIEWPORT_MARGIN),
-        bottom: positioned ? 'auto' : (isMobile ? MOBILE_INSET : undefined),
-        borderRadius: collapsed ? COLLAPSED_RADIUS : PANEL_RADIUS,
+        left: isDocked ? DOCKED_INSET : positioned ? position.x : undefined,
+        top: isDocked ? undefined : positioned ? position.y : isMobile ? undefined : DEFAULT_COLLAPSED_TOP,
+        right: isDocked ? DOCKED_INSET : positioned ? 'auto' : isMobile ? MOBILE_INSET : VIEWPORT_MARGIN,
+        bottom: isDocked
+          ? `max(${DOCKED_INSET}px, env(safe-area-inset-bottom, 0px))`
+          : positioned
+            ? 'auto'
+            : isMobile
+              ? MOBILE_INSET
+              : undefined,
+        maxWidth: isDocked ? DOCKED_MAX_WIDTH : undefined,
+        marginLeft: isDocked ? 'auto' : undefined,
+        marginRight: isDocked ? 'auto' : undefined,
+        borderRadius: isDocked ? dockedRadius : collapsed ? COLLAPSED_RADIUS : PANEL_RADIUS,
         transition: isDragging ? 'none' : undefined,
         boxShadow: game?.canJudge
           ? '0 24px 56px -16px rgba(0,0,0,0.72), 0 0 0 1px rgba(34,211,238,0.4), 0 0 32px -10px rgba(34,211,238,0.35)'
@@ -459,7 +497,7 @@ export function ChatPanel() {
       }}
       transition={isDragging ? { duration: 0 } : panelTransition}
       onAnimationComplete={() => {
-        if (isDraggingRef.current || !position) return;
+        if (isDocked || isDraggingRef.current || !position) return;
         setPosition((p) => (p ? clampPosition(p.x, p.y) : p));
       }}
     >
@@ -470,11 +508,18 @@ export function ChatPanel() {
             !collapsed && 'border-b border-white/[0.1] bg-white/[0.03]'
           )}
           style={{
-            cursor: isMobile ? 'default' : (loading ? 'default' : isDragging ? 'grabbing' : 'grab'),
+            cursor:
+              isDocked || isMobile
+                ? 'default'
+                : loading
+                  ? 'default'
+                  : isDragging
+                    ? 'grabbing'
+                    : 'grab',
             touchAction: 'none',
           }}
           onPointerDown={handleDragStart}
-          title={isMobile ? t.panelTitle : t.dragTitle}
+          title={isDocked || isMobile ? t.panelTitle : t.dragTitle}
         >
           <span
             className={cn(
@@ -499,26 +544,31 @@ export function ChatPanel() {
           >
             {t.judgeName}
           </span>
-          <button
-            type="button"
-            aria-label={collapsed ? t.expandJudge : t.collapseJudge}
-            aria-expanded={!collapsed}
-            title={collapsed ? t.expand : t.collapse}
-            className="inline-flex shrink-0 items-center justify-center p-0.5 text-white/45 transition-colors hover:text-white/75 ml-auto"
-            onClick={() => {
-              setCollapsed((v) => {
-                const next = !v;
-                setPosition((p) => (p ? clampPositionForCollapsed(p.x, p.y, next) : p));
-                return next;
-              });
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <FontAwesomeIcon
-              icon={collapsed ? faChevronUp : faChevronDown}
-              className="h-2.5 w-2.5"
-            />
-          </button>
+          <div className="ml-auto flex min-w-0 shrink items-center gap-1.5">
+            <Scoreboard embedded />
+            <button
+              type="button"
+              aria-label={collapsed ? t.expandJudge : t.collapseJudge}
+              aria-expanded={!collapsed}
+              title={collapsed ? t.expand : t.collapse}
+              className="inline-flex shrink-0 items-center justify-center p-0.5 text-white/45 transition-colors hover:text-white/75"
+              onClick={() => {
+                setCollapsed((v) => {
+                  const next = !v;
+                  if (!isDocked) {
+                    setPosition((p) => (p ? clampPositionForCollapsed(p.x, p.y, next) : p));
+                  }
+                  return next;
+                });
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <FontAwesomeIcon
+                icon={collapsed ? faChevronUp : faChevronDown}
+                className="h-2.5 w-2.5"
+              />
+            </button>
+          </div>
         </div>
 
         <AnimatePresence initial={false} mode="popLayout">
@@ -531,13 +581,17 @@ export function ChatPanel() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <Scoreboard embedded />
               <div
                 ref={scrollRef}
                 className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3"
               >
                 {messages.length === 0 && !loading && (
-                  <div className="flex min-h-[140px] flex-col items-center justify-center px-2 py-6 text-center">
+                  <div
+                    className={cn(
+                      'flex flex-col items-center justify-center px-2 text-center',
+                      isDocked ? 'min-h-0 py-4' : 'min-h-[140px] py-6'
+                    )}
+                  >
                     <p className="text-sm font-medium text-cyan-200/90">{t.emptyTitle}</p>
                     <p className="mt-2 max-w-[260px] text-xs leading-relaxed text-white/40">
                       {game?.canJudge && game.currentCard
@@ -611,7 +665,7 @@ export function ChatPanel() {
                       : 'border-white/10 bg-white/[0.04]'
                   )}
                   style={
-                    isMobile
+                    isMobile || isDocked
                       ? { paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }
                       : undefined
                   }

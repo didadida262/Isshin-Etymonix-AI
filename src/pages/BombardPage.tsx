@@ -9,6 +9,13 @@ import { useSettingsModal } from '../context/SettingsModalContext';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import React from 'react';
+import {
+  CARD_CENTER_MOVE_MS,
+  CARD_SCROLL_SETTLE_MS,
+  cardRefKey,
+  computeCardFocusTransform,
+  type CardFocusTransform,
+} from '../lib/cardFocusLayout';
 import { cn } from '../lib/cn';
 import { loadUnitData, type RootGroup, type WordItem } from '../lib/loadUnitData';
 
@@ -83,6 +90,9 @@ const BOMBARD_UI = {
   },
 } as const;
 
+const STOP_BTN_CLASSES =
+  'border-amber-400/50 bg-gradient-to-b from-amber-900/75 to-amber-950/90 text-amber-50 shadow-[0_0_28px_-6px_rgba(251,191,36,0.45)] hover:from-amber-800/80 hover:to-amber-900/90';
+
 /* ════════════════════════════════════════
    页面主体
    ════════════════════════════════════════ */
@@ -146,8 +156,12 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const wasJudgingRef = useRef(false);
   const pausedCountdownRef = useRef(0);
+  const [activeCardTransform, setActiveCardTransform] = useState<
+    ({ key: string } & CardFocusTransform) | null
+  >(null);
   
   /* 性能优化：缓存 allCards */
   const allCards = useMemo(() => {
@@ -185,20 +199,70 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
     }));
   }, []);
 
-  /* ── 丝滑滚动到词根区 ── */
-  const scrollToRoot = useCallback(
-    (rootIdx: number) =>
+  const settleAfterScroll = useCallback(
+    () =>
       new Promise<void>((resolve) => {
-        const el = sectionRefs.current[rootIdx];
-        if (el) {
-          el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
-          // 等待滚动大致完成
-          setTimeout(resolve, reduceMotion ? 60 : 520);
-        } else {
+        if (reduceMotion) {
           resolve();
+          return;
         }
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(resolve, 40);
+          });
+        });
       }),
-    [reduceMotion],
+    [reduceMotion]
+  );
+
+  /* ── 滚动到当前卡牌 ── */
+  const scrollToCard = useCallback(
+    (card: FlatCard) =>
+      new Promise<void>((resolve) => {
+        const el = cardRefs.current.get(cardRefKey(card.rootIdx, card.wordIdx));
+        if (el) {
+          el.scrollIntoView({
+            behavior: reduceMotion ? 'auto' : 'smooth',
+            block: 'center',
+            inline: 'nearest',
+          });
+          setTimeout(resolve, reduceMotion ? 60 : CARD_SCROLL_SETTLE_MS);
+          return;
+        }
+        const section = sectionRefs.current[card.rootIdx];
+        if (section) {
+          section.scrollIntoView({
+            behavior: reduceMotion ? 'auto' : 'smooth',
+            block: 'center',
+          });
+          setTimeout(resolve, reduceMotion ? 60 : CARD_SCROLL_SETTLE_MS);
+          return;
+        }
+        resolve();
+      }),
+    [reduceMotion]
+  );
+
+  /* ── 将当前卡牌动画移至可视区中央（避开底部判官面板） ── */
+  const centerCardInView = useCallback(
+    (card: FlatCard) =>
+      new Promise<void>((resolve) => {
+        const key = cardRefKey(card.rootIdx, card.wordIdx);
+        const el = cardRefs.current.get(key);
+        if (!el) {
+          resolve();
+          return;
+        }
+        const { x, y, scale } = computeCardFocusTransform(el);
+        if (reduceMotion) {
+          setActiveCardTransform({ key, x, y, scale });
+          resolve();
+          return;
+        }
+        setActiveCardTransform({ key, x, y, scale });
+        setTimeout(resolve, CARD_CENTER_MOVE_MS);
+      }),
+    [reduceMotion]
   );
 
   /* ── 进入下一轮 ── */
@@ -206,7 +270,10 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
     async (prev: FlatCard | null) => {
       if (allCards.length === 0) return;
 
-      if (prev) flipClose(prev);
+      if (prev) {
+        setActiveCardTransform(null);
+        flipClose(prev);
+      }
       await new Promise<void>((r) => setTimeout(r, FLIP_CLOSE_MS + 80));
 
       const nextRoundNum = roundRef.current + 1;
@@ -215,6 +282,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         setRunning(false);
         setCountdown(0);
         setCurrent(null);
+        setActiveCardTransform(null);
         setFlipped({});
         game.completeSession();
         return;
@@ -235,7 +303,13 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
           nextRoundNum
         );
 
-        await scrollToRoot(card.rootIdx);
+        await new Promise<void>((r) => {
+          requestAnimationFrame(() => requestAnimationFrame(r));
+        });
+
+        await scrollToCard(card);
+        await settleAfterScroll();
+        await centerCardInView(card);
         flipOpen(card);
 
         // 开始倒计时 - 优化：使用 requestAnimationFrame 减少重渲染
@@ -266,7 +340,16 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         console.error('Failed to pick card:', err);
       }
     },
-    [allCards, clearTimers, flipClose, flipOpen, game, scrollToRoot],
+    [
+      allCards,
+      centerCardInView,
+      clearTimers,
+      flipClose,
+      flipOpen,
+      game,
+      scrollToCard,
+      settleAfterScroll,
+    ],
   );
 
   /* ── 开始 / 停止 ── */
@@ -275,6 +358,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
       clearTimers();
       setRunning(false);
       setCurrent(null);
+      setActiveCardTransform(null);
       setCountdown(0);
       setFlipped({});
       roundRef.current = 0;
@@ -351,15 +435,15 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 
   const countdownWarning = running && countdown > 0 && countdown <= 10;
   const countdownUrgency = countdownWarning ? 11 - countdown : 0;
+  const showFocusBackdrop = running && !!current && !!activeCardTransform;
 
   return (
     <div className="relative min-h-screen bg-zinc-950 text-zinc-100">
       {/* ── 顶栏 ── */}
       <FinaleOverlay />
 
-      <header className="relative z-40 sticky top-0 flex flex-col gap-2 border-b border-white/[0.08] bg-zinc-950/70 px-3 py-2.5 backdrop-blur-xl md:px-6 md:py-3">
-        <div className="flex items-center justify-between gap-2 md:grid md:h-12 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
-          <div className="flex min-w-0 items-center gap-2">
+      <header className="relative z-40 sticky top-0 flex min-h-[3.5rem] items-center gap-3 border-b border-white/[0.08] bg-zinc-950/70 px-3 py-3 backdrop-blur-xl md:min-h-[4rem] md:gap-4 md:px-6 md:py-3.5">
+          <div className="flex min-w-0 shrink-0 items-center gap-2.5 md:gap-3">
             <ParticleLogo size={32} className="hidden sm:block" />
             <ParticleLogo size={28} className="sm:hidden" />
             <h1 className="min-w-0 font-display text-sm font-semibold tracking-tight text-white md:text-lg">
@@ -370,98 +454,99 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
             </h1>
           </div>
 
-          <div className="hidden md:flex md:h-12 md:items-center md:justify-center md:gap-2.5">
-              <div
-                className={cn(
-                  'relative flex h-11 shrink-0 items-center justify-center overflow-visible transition-[width] duration-200 md:h-12',
-                  running
-                    ? countdownWarning
-                      ? 'w-[5.25rem] md:w-[6.25rem]'
-                      : 'w-[4.75rem] md:w-[5.75rem]'
-                    : 'w-0 overflow-hidden'
-                )}
-                aria-hidden={!running}
-              >
-                <AnimatePresence mode="wait">
-                  {running && countdown > 0 ? (
-                    <motion.span
-                      key={countdownWarning ? `warn-${countdown}` : 'cd'}
-                      initial={
-                        countdownWarning
-                          ? { opacity: 0.7, scale: 1.14 }
-                          : { opacity: 0, scale: 0.92 }
-                      }
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.92 }}
-                      transition={
-                        countdownWarning
-                          ? { type: 'spring', stiffness: 520, damping: 22 }
-                          : { duration: 0.2 }
-                      }
-                      className={cn(
-                        'relative inline-flex h-11 w-full items-center justify-center rounded-xl border font-mono font-bold tabular-nums tracking-wide md:h-12',
-                        countdownWarning
-                          ? cn(
-                              'animate-countdown-warning-tick',
-                              'border-red-400/60 bg-gradient-to-b from-red-800/90 to-red-950/95 text-red-50',
-                              'shadow-[0_0_32px_-4px_rgba(248,113,113,0.65)]',
-                              countdownUrgency >= 7 && 'text-3xl md:text-4xl',
-                              countdownUrgency >= 4 &&
-                                countdownUrgency < 7 &&
-                                'text-2xl md:text-3xl',
-                              countdownUrgency < 4 && 'text-xl md:text-2xl'
-                            )
-                          : cn(
-                              'border-cyan-400/50 bg-gradient-to-b from-cyan-800/70 to-cyan-950/95 text-cyan-50',
-                              'text-xl shadow-[0_0_28px_-6px_rgba(34,211,238,0.55)] md:text-2xl'
-                            )
-                      )}
-                    >
-                      {countdownWarning && (
-                        <span
-                          className="pointer-events-none absolute inset-0 rounded-xl bg-red-500/20 animate-countdown-warning-glow"
-                          aria-hidden
-                        />
-                      )}
-                      <span className="relative">{countdown}s</span>
-                    </motion.span>
-                  ) : null}
-                </AnimatePresence>
-              </div>
-              <button
-                type="button"
-                onClick={toggleRunning}
-                disabled={loading || cardsCount === 0}
-                className={cn(
-                  'inline-flex h-11 min-w-[7.5rem] items-center justify-center gap-2 rounded-xl border px-6',
-                  'text-sm font-semibold tracking-wide transition-all md:h-12 md:min-w-[9.5rem] md:px-10 md:text-base',
-                  running
-                    ? 'border-red-400/50 bg-gradient-to-b from-red-900/80 to-red-950/90 text-red-100 shadow-[0_0_28px_-6px_rgba(248,113,113,0.55)] hover:from-red-800/80 hover:to-red-900/90'
-                    : 'border-emerald-400/50 bg-gradient-to-b from-emerald-800/70 to-emerald-950/90 text-emerald-50 shadow-[0_0_28px_-6px_rgba(52,211,153,0.5)] hover:from-emerald-700/75 hover:to-emerald-900/90',
-                  (loading || cardsCount === 0) && 'cursor-not-allowed opacity-50'
-                )}
-              >
-                <FontAwesomeIcon
-                  icon={running ? faStop : faPlay}
-                  className="h-4 w-4 md:h-[1.125rem] md:w-[1.125rem]"
-                />
-                <span className="hidden sm:inline">
-                  {loading ? ui.loading : running ? ui.stop : ui.start}
-                </span>
-                <span className="sm:hidden">
-                  {loading ? ui.loadingShort : running ? ui.stopShort : ui.startShort}
-                </span>
-              </button>
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-2.5 md:gap-3">
+            <div
+              className={cn(
+                'relative flex h-11 shrink-0 items-center justify-center overflow-visible transition-[width] duration-200 md:h-12',
+                running
+                  ? countdownWarning
+                    ? 'w-[4.75rem] md:w-[5.25rem]'
+                    : 'w-[4.25rem] md:w-[4.75rem]'
+                  : 'w-0 overflow-hidden'
+              )}
+              aria-hidden={!running}
+            >
+              <AnimatePresence mode="wait">
+                {running && countdown > 0 ? (
+                  <motion.span
+                    key={countdownWarning ? `warn-${countdown}` : 'cd'}
+                    initial={
+                      countdownWarning
+                        ? { opacity: 0.7, scale: 1.14 }
+                        : { opacity: 0, scale: 0.92 }
+                    }
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.92 }}
+                    transition={
+                      countdownWarning
+                        ? { type: 'spring', stiffness: 520, damping: 22 }
+                        : { duration: 0.2 }
+                    }
+                    className={cn(
+                      'relative inline-flex h-11 w-full items-center justify-center rounded-xl border font-mono font-bold tabular-nums tracking-wide md:h-12',
+                      countdownWarning
+                        ? cn(
+                            'animate-countdown-warning-tick',
+                            'border-red-400/60 bg-gradient-to-b from-red-800/90 to-red-950/95 text-red-50',
+                            'shadow-[0_0_32px_-4px_rgba(248,113,113,0.65)]',
+                            countdownUrgency >= 7 && 'text-2xl md:text-3xl',
+                            countdownUrgency >= 4 &&
+                              countdownUrgency < 7 &&
+                              'text-xl md:text-2xl',
+                            countdownUrgency < 4 && 'text-lg md:text-xl'
+                          )
+                        : cn(
+                            'border-cyan-400/50 bg-gradient-to-b from-cyan-800/70 to-cyan-950/95 text-cyan-50',
+                            'text-lg shadow-[0_0_28px_-6px_rgba(34,211,238,0.55)] md:text-xl'
+                          )
+                    )}
+                  >
+                    {countdownWarning && (
+                      <span
+                        className="pointer-events-none absolute inset-0 rounded-xl bg-red-500/20 animate-countdown-warning-glow"
+                        aria-hidden
+                      />
+                    )}
+                    <span className="relative">{countdown}s</span>
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
+            </div>
+            <button
+              type="button"
+              onClick={toggleRunning}
+              disabled={loading || cardsCount === 0}
+              className={cn(
+                'inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3.5',
+                'text-sm font-semibold tracking-wide transition-all md:h-12 md:min-w-[7.5rem] md:gap-2 md:px-6 md:text-base',
+                running ? STOP_BTN_CLASSES : 'border-emerald-400/50 bg-gradient-to-b from-emerald-800/70 to-emerald-950/90 text-emerald-50 shadow-[0_0_28px_-6px_rgba(52,211,153,0.5)] hover:from-emerald-700/75 hover:to-emerald-900/90',
+                !running && 'min-w-[6rem] md:min-w-[9.5rem]',
+                running && 'min-w-[5.5rem] md:min-w-[7.5rem]',
+                (loading || cardsCount === 0) && 'cursor-not-allowed opacity-50'
+              )}
+            >
+              <FontAwesomeIcon
+                icon={running ? faStop : faPlay}
+                className="h-3.5 w-3.5 md:h-4 md:w-4"
+              />
+              <span className="hidden sm:inline">
+                {loading ? ui.loading : running ? ui.stop : ui.start}
+              </span>
+              <span className="sm:hidden">
+                {loading ? ui.loadingShort : running ? ui.stopShort : ui.startShort}
+              </span>
+            </button>
           </div>
 
-          <div className="flex shrink-0 items-center justify-end gap-2 md:gap-3">
+          {!running && (
+          <div className="flex shrink-0 items-center justify-end gap-2.5 md:gap-3.5">
             <button
               type="button"
               onClick={toggleTestRevealAll}
               disabled={loading || cardsCount === 0}
               title={testRevealAll ? '恢复所有卡片为背面' : '临时测试：翻开全部单词牌'}
               className={cn(
-                'inline-flex h-9 min-w-[3rem] items-center justify-center rounded-lg border px-2.5 text-xs font-medium transition-colors md:h-10 md:px-3 md:text-sm',
+                'inline-flex h-10 min-w-[3rem] items-center justify-center rounded-lg border px-3 text-xs font-medium transition-colors md:h-11 md:px-3.5 md:text-sm',
                 testRevealAll
                   ? 'border-amber-500/40 bg-amber-950/50 text-amber-300 hover:bg-amber-900/40'
                   : 'border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-200',
@@ -475,80 +560,38 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
               onClick={toggleLang}
               title={lang === 'zh' ? 'Switch to English' : '切换到中文'}
               aria-label={lang === 'zh' ? 'Switch to English (EN)' : '切换到中文 (中)'}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-400 transition-colors hover:border-cyan-500/30 hover:bg-white/10 hover:text-cyan-300 md:h-10 md:w-10"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-400 transition-colors hover:border-cyan-500/30 hover:bg-white/10 hover:text-cyan-300 md:h-11 md:w-11"
             >
               <FontAwesomeIcon icon={faGlobe} className="h-4 w-4 text-cyan-400" />
             </button>
-            <SettingsButton onClick={openSettings} className="md:h-10 md:w-10" />
+            <SettingsButton onClick={openSettings} className="h-10 w-10 md:h-11 md:w-11" />
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 text-xs font-medium text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-200 md:h-10 md:px-3.5 md:text-sm"
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 text-xs font-medium text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-200 md:h-11 md:px-4 md:text-sm"
             >
               <span className="hidden sm:inline">{ui.back}</span>
               <span className="sm:hidden">{ui.backShort}</span>
             </button>
           </div>
-        </div>
-
-        <div className="flex items-center justify-center gap-2 md:hidden">
-          <div
-            className={cn(
-              'relative flex h-10 shrink-0 items-center justify-center overflow-visible transition-[width] duration-200',
-              running
-                ? countdownWarning
-                  ? 'w-[4.75rem]'
-                  : 'w-[4.25rem]'
-                : 'w-0 overflow-hidden'
-            )}
-            aria-hidden={!running}
-          >
-            <AnimatePresence mode="wait">
-              {running && countdown > 0 ? (
-                <motion.span
-                  key={countdownWarning ? `warn-m-${countdown}` : 'cd-m'}
-                  initial={countdownWarning ? { opacity: 0.7, scale: 1.12 } : { opacity: 0, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
-                  transition={
-                    countdownWarning
-                      ? { type: 'spring', stiffness: 520, damping: 22 }
-                      : { duration: 0.2 }
-                  }
-                  className={cn(
-                    'relative inline-flex h-10 w-full items-center justify-center rounded-xl border font-mono font-bold tabular-nums tracking-wide',
-                    countdownWarning
-                      ? 'animate-countdown-warning-tick border-red-400/60 bg-gradient-to-b from-red-800/90 to-red-950/95 text-red-50 text-xl shadow-[0_0_32px_-4px_rgba(248,113,113,0.65)]'
-                      : 'border-cyan-400/50 bg-gradient-to-b from-cyan-800/70 to-cyan-950/95 text-cyan-50 text-lg shadow-[0_0_28px_-6px_rgba(34,211,238,0.55)]'
-                  )}
-                >
-                  <span className="relative">{countdown}s</span>
-                </motion.span>
-              ) : null}
-            </AnimatePresence>
-          </div>
-
-          <button
-            type="button"
-            onClick={toggleRunning}
-            disabled={loading || cardsCount === 0}
-            className={cn(
-              'inline-flex h-10 min-w-[6rem] items-center justify-center gap-1.5 rounded-xl border px-3 text-sm font-semibold tracking-wide transition-all',
-              running
-                ? 'border-red-400/50 bg-gradient-to-b from-red-900/80 to-red-950/90 text-red-100 shadow-[0_0_28px_-6px_rgba(248,113,113,0.55)]'
-                : 'border-emerald-400/50 bg-gradient-to-b from-emerald-800/70 to-emerald-950/90 text-emerald-50 shadow-[0_0_28px_-6px_rgba(52,211,153,0.5)]',
-              (loading || cardsCount === 0) && 'cursor-not-allowed opacity-50'
-            )}
-          >
-            <FontAwesomeIcon icon={running ? faStop : faPlay} className="h-3.5 w-3.5" />
-            <span>{loading ? ui.loadingShort : running ? ui.stopShort : ui.startShort}</span>
-          </button>
-
-        </div>
+          )}
       </header>
 
       {/* ── 主体内容 ── */}
-      <main className="relative z-10 mx-auto max-w-6xl space-y-8 px-3 py-5 sm:px-4 sm:py-8 md:space-y-10 md:px-6">
+      <main className="relative z-10 mx-auto max-w-6xl space-y-10 px-3 py-6 sm:space-y-12 sm:px-4 sm:py-10 md:space-y-14 md:px-6 md:py-12">
+        <AnimatePresence>
+          {showFocusBackdrop && (
+            <motion.div
+              key="card-focus-backdrop"
+              className="pointer-events-auto fixed inset-0 z-[15] bg-zinc-950/60 backdrop-blur-[2px]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.28, ease: 'easeOut' }}
+              aria-hidden
+            />
+          )}
+        </AnimatePresence>
         {/* 加载状态 */}
         {loading && (
           <div className="flex items-center justify-center py-20">
@@ -590,10 +633,10 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
               ref={(el) => {
                 sectionRefs.current[ri] = el;
               }}
-              className="scroll-mt-24"
+              className="scroll-mt-32 md:scroll-mt-36"
             >
               {/* 词根标题 */}
-              <div className="mb-3 sm:mb-4 group relative flex items-center gap-2 sm:gap-3">
+              <div className="mb-4 sm:mb-5 group relative flex items-center gap-2 sm:gap-3">
                 {/* 词根 - 突出显示 */}
                 <span className="relative flex items-center">
                   {/* 发光背景 */}
@@ -614,18 +657,32 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
               </div>
 
               {/* 2×2 卡牌网格 */}
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
                 {root.words.map((word, wi) => {
                   const isFlipped = testRevealAll || !!flipped[ri]?.[wi];
                   const isCurrent =
                     current?.rootIdx === ri && current?.wordIdx === wi;
+                  const key = cardRefKey(ri, wi);
+                  const focusOffset =
+                    isCurrent && activeCardTransform?.key === key
+                      ? {
+                          x: activeCardTransform.x,
+                          y: activeCardTransform.y,
+                          scale: activeCardTransform.scale,
+                        }
+                      : undefined;
 
                   return (
                     <FlipCard
                       key={wi}
+                      ref={(el) => {
+                        if (el) cardRefs.current.set(key, el);
+                        else cardRefs.current.delete(key);
+                      }}
                       word={word}
                       flipped={isFlipped}
                       highlighted={isCurrent}
+                      focusOffset={focusOffset}
                       reduceMotion={!!reduceMotion}
                       immediateDefinition={testRevealAll}
                     />
@@ -648,18 +705,24 @@ interface FlipCardProps {
   word: WordItem;
   flipped: boolean;
   highlighted: boolean;
+  focusOffset?: { x: number; y: number; scale: number };
   reduceMotion: boolean;
   /** 全开测试时立即显示释义，不等待 20s */
   immediateDefinition?: boolean;
 }
 
-const FlipCard = React.memo(({
-  word,
-  flipped,
-  highlighted,
-  reduceMotion,
-  immediateDefinition = false,
-}: FlipCardProps) => {
+const FlipCard = React.memo(
+  React.forwardRef<HTMLDivElement, FlipCardProps>(function FlipCard(
+    {
+      word,
+      flipped,
+      highlighted,
+      focusOffset,
+      reduceMotion,
+      immediateDefinition = false,
+    },
+    ref
+  ) {
   const openMs = reduceMotion ? 0 : FLIP_OPEN_MS;
   const closeMs = reduceMotion ? 0 : FLIP_CLOSE_MS;
 
@@ -682,12 +745,26 @@ const FlipCard = React.memo(({
   // 性能优化：缓存样式
   const hoverScale = reduceMotion ? 1 : 1.02;
 
+  const isFocused = !!focusOffset;
+  const centerTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: 'spring' as const, stiffness: 280, damping: 30 };
+
   return (
     <motion.div
-      className="perspective-[800px] cursor-pointer"
-      style={{ perspective: '800px' }}
-      whileHover={{ scale: hoverScale }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      ref={ref}
+      className={cn(
+        'perspective-[800px] cursor-pointer',
+        isFocused && 'relative z-[25]'
+      )}
+      style={{ perspective: '800px', transformOrigin: 'center center' }}
+      animate={{
+        x: focusOffset?.x ?? 0,
+        y: focusOffset?.y ?? 0,
+        scale: focusOffset?.scale ?? 1,
+      }}
+      transition={centerTransition}
+      whileHover={isFocused ? undefined : { scale: hoverScale }}
     >
       <motion.div
         className="relative w-full"
@@ -767,4 +844,5 @@ const FlipCard = React.memo(({
       </motion.div>
     </motion.div>
   );
-});
+  })
+);
