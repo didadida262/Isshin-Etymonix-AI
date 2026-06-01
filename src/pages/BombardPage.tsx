@@ -30,6 +30,10 @@ const BACK_CLASSES = {
   glow: 'absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_50%,rgba(6,182,212,0.12),transparent_70%)]',
 };
 
+/** 正面暗角，与背面 HUD 区分且不加纹理字 */
+const FRONT_FACE_VIGNETTE =
+  'bg-[radial-gradient(ellipse_85%_75%_at_50%_42%,transparent_35%,rgba(0,0,0,0.5)_100%)]';
+
 /* ── 常量 ── */
 const FLIP_OPEN_MS = 480;
 const FLIP_CLOSE_MS = 380;
@@ -815,31 +819,59 @@ const FlipCard = React.memo(
           )}
         </div>
 
-        {/* ──── 正面 ──── */}
+        {/* ──── 正面：词典页纹理（非背面 HUD） ──── */}
         <div
           className={cn(
-            'absolute inset-0 flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-xl border overflow-hidden px-2 py-3',
-            'bg-gradient-to-br from-zinc-900 via-black to-zinc-900',
+            'absolute inset-0 aspect-[4/3] overflow-hidden rounded-xl border',
+            'bg-gradient-to-b from-indigo-950/90 via-zinc-950 to-black',
             highlighted
-              ? 'border-cyan-400/50 shadow-[0_0_28px_-6px_rgba(34,211,238,0.45)]'
-              : 'border-cyan-500/20 shadow-[0_0_24px_-10px_rgba(6,182,212,0.28)]'
+              ? 'border-indigo-300/55 shadow-[0_0_32px_-8px_rgba(129,140,248,0.55)]'
+              : 'border-indigo-500/25 shadow-[0_0_20px_-12px_rgba(99,102,241,0.35)]'
           )}
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          {/* 单词 */}
-          <span className="shrink-0 font-display text-lg font-bold text-white md:text-xl">
-            {word.word}
-          </span>
-          <div className="h-px w-12 shrink-0 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
-          {/* 释义：全开立即显示；轰炸流程中翻牌 20s 后淡入 */}
-          <motion.p
-            className="min-h-0 max-h-[42%] w-full overflow-y-auto text-center text-xs leading-relaxed text-zinc-300 md:text-sm"
-            initial={{ opacity: 0, y: 4 }}
-            animate={showDef ? { opacity: 1, y: 0 } : { opacity: 0, y: 4 }}
-            transition={{ duration: immediateDefinition ? 0.2 : 0.5, ease: 'easeOut' }}
-          >
-            {word.definition}
-          </motion.p>
+          {!reduceMotion && (
+            <>
+              <div className={`absolute inset-0 ${FRONT_FACE_VIGNETTE}`} aria-hidden />
+              <div
+                className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-indigo-400/45 to-transparent"
+                aria-hidden
+              />
+              <div
+                className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-amber-500/25 to-transparent"
+                aria-hidden
+              />
+              <div
+                className="absolute inset-y-6 left-3 w-px bg-gradient-to-b from-transparent via-indigo-300/20 to-transparent"
+                aria-hidden
+              />
+              <div
+                className="absolute inset-y-6 right-3 w-px bg-gradient-to-b from-transparent via-indigo-300/20 to-transparent"
+                aria-hidden
+              />
+              {highlighted && (
+                <div
+                  className="absolute inset-2 rounded-lg ring-1 ring-indigo-300/30"
+                  aria-hidden
+                />
+              )}
+            </>
+          )}
+
+          <div className="relative z-10 flex h-full flex-col items-center justify-center gap-1.5 px-2 py-3">
+            <span className="shrink-0 font-display text-lg font-bold text-white drop-shadow-[0_0_10px_rgba(129,140,248,0.35)] md:text-xl">
+              {word.word}
+            </span>
+            <div className="h-px w-14 shrink-0 bg-gradient-to-r from-transparent via-indigo-400/50 to-transparent" />
+            <motion.p
+              className="min-h-0 max-h-[42%] w-full overflow-y-auto text-center text-xs leading-relaxed text-zinc-300 md:text-sm"
+              initial={{ opacity: 0, y: 4 }}
+              animate={showDef ? { opacity: 1, y: 0 } : { opacity: 0, y: 4 }}
+              transition={{ duration: immediateDefinition ? 0.2 : 0.5, ease: 'easeOut' }}
+            >
+              {word.definition}
+            </motion.p>
+          </div>
         </div>
       </motion.div>
     </motion.div>
