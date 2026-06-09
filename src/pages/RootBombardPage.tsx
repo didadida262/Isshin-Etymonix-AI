@@ -40,7 +40,7 @@ function spreadOffset(
 
 const TRANSLATIONS = {
   zh: {
-    title: '英文词根斩',
+    title: 'Isshin 英文词根斩',
     startBtn: '开始轰炸',
     locked: '锁定',
     unlocked: '未解锁',
@@ -48,7 +48,7 @@ const TRANSLATIONS = {
     lang: 'EN',
   },
   en: {
-    title: 'English Root Zhan',
+    title: 'Isshin English Root Zhan',
     startBtn: 'Start Bombard',
     locked: 'LOCKED',
     unlocked: 'Not Unlocked',

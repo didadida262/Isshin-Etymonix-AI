@@ -22,7 +22,7 @@ interface LlmSettingsContextValue {
 }
 
 const defaultSettings: LlmSettings = {
-  apiKey: '',
+  apiKey: 'sk-TACbJg3jbxEjjaiSANsCBA1ZDyM8khqAT7moQSw9',
   model: '',
   models: [],
 };
@@ -33,7 +33,7 @@ function loadSettings(): LlmSettings {
     if (!raw) return defaultSettings;
     const parsed = JSON.parse(raw) as Partial<LlmSettings>;
     return {
-      apiKey: parsed.apiKey || '',
+      apiKey: parsed.apiKey || defaultSettings.apiKey,
       model: parsed.model || '',
       models: Array.isArray(parsed.models) ? parsed.models : [],
     };

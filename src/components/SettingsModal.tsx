@@ -196,7 +196,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               <SectionTitle>基础配置</SectionTitle>
               <div className="space-y-3">
                 <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] leading-relaxed text-zinc-500">
-                  获取 API Key 请访问：
+                  获取自己的 API Key，请访问：
                   <a
                     href="https://aiplatform.njsrd.com/nexus/?invite_code=6UFELQ"
                     target="_blank"
@@ -218,7 +218,10 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 </label>
 
                 <label className="block">
-                  <span className="mb-1 block text-xs text-zinc-400">API Key</span>
+                  <span className="mb-1 flex items-center gap-2 text-xs text-zinc-400">
+                    API Key
+                    <span className="rounded-full bg-cyan-400/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-cyan-400">体验版</span>
+                  </span>
                   <div className="relative">
                     <input
                       type={showApiKey ? 'text' : 'password'}
