@@ -1,4 +1,4 @@
-import { ParticleLogo } from './ParticleLogo';
+import logoUrl from '../assets/Isshin-Etymonix-AI_logo.png';
 import { cn } from '../lib/cn';
 
 interface SiteBrandProps {
@@ -12,7 +12,11 @@ interface SiteBrandProps {
 export function SiteBrand({ title, compact = false, className, logoSize = 40 }: SiteBrandProps) {
   return (
     <div className={cn('flex min-w-0 items-center gap-2 sm:gap-3', className)}>
-      <ParticleLogo size={logoSize} className="-ml-0.5 sm:-ml-1" />
+      <img
+        src={logoUrl}
+        alt="Isshin Etyomnix AI"
+        className="-ml-0.5 h-12 shrink-0 object-contain"
+      />
       <h1
         className={cn(
           'min-w-0 font-display font-semibold tracking-tight text-white',

@@ -2,7 +2,7 @@ import { faGlobe, faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FinaleOverlay } from '../components/FinaleOverlay';
 import { SettingsButton } from '../components/SettingsButton';
-import { ParticleLogo } from '../components/ParticleLogo';
+import logoUrl from '../assets/Isshin-Etymonix-AI_logo.png';
 import { MAX_ROUNDS, useGameSession } from '../context/GameSessionContext';
 import { useAppLanguage } from '../context/AppLanguageContext';
 import { useSettingsModal } from '../context/SettingsModalContext';
@@ -448,8 +448,8 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 
       <header className="relative z-40 sticky top-0 flex min-h-[3.5rem] items-center gap-3 border-b border-white/[0.08] bg-zinc-950/70 px-3 py-3 backdrop-blur-xl md:min-h-[4rem] md:gap-4 md:px-6 md:py-3.5">
           <div className="flex min-w-0 shrink-0 items-center gap-2.5 md:gap-3">
-            <ParticleLogo size={32} className="hidden sm:block" />
-            <ParticleLogo size={28} className="sm:hidden" />
+            <img src={logoUrl} alt="" className="hidden h-10 shrink-0 object-contain sm:block" />
+            <img src={logoUrl} alt="" className="h-10 shrink-0 object-contain sm:hidden" />
             <h1 className="min-w-0 font-display text-sm font-semibold tracking-tight text-white md:text-lg">
               <span className="hidden md:inline">
                 Unit {unitId} · {ui.titleSuffix}

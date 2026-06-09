@@ -19,6 +19,7 @@
 ```bash
 yarn install
 yarn dev
+corepack yarn dev
 ```
 
 浏览器打开 `http://localhost:5173`（Vite + Cloudflare 插件会同时启动 Worker，`/api` 与线上一致）：

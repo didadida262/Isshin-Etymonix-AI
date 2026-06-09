@@ -22,7 +22,7 @@ interface LlmSettingsContextValue {
 }
 
 const defaultSettings: LlmSettings = {
-  apiKey: 'sk-TACbJg3jbxEjjaiSANsCBA1ZDyM8khqAT7moQSw9',
+  apiKey: '',
   model: '',
   models: [],
 };
