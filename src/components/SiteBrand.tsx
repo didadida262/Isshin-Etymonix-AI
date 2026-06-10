@@ -15,7 +15,7 @@ export function SiteBrand({ title, compact = false, className, logoSize = 40 }: 
       <img
         src={logoUrl}
         alt="Isshin Etyomnix AI"
-        className="-ml-0.5 h-12 shrink-0 object-contain"
+        className="-ml-0.5 h-12 shrink-0 rounded-lg border border-white/10 bg-white/[0.06] object-contain p-1"
       />
       <h1
         className={cn(
