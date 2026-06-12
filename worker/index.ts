@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 
+import { requireAuth, type AuthBindings, type AuthVariables } from './lib/auth';
 import { runChat, runQuickTest, streamChat } from './lib/chat';
 import { parseJudgeResponse, runJudge, streamJudge } from './lib/judge';
 import { fetchModels } from './lib/models';
@@ -10,7 +11,7 @@ import {
 } from './lib/types';
 import { validateChatFields } from './lib/validate';
 
-const app = new Hono().basePath('/api');
+const app = new Hono<{ Bindings: AuthBindings; Variables: AuthVariables }>().basePath('/api');
 
 const SSE_HEADERS = {
   'Content-Type': 'text/event-stream',
@@ -21,7 +22,7 @@ const SSE_HEADERS = {
 
 app.get('/health', (c) => c.json({ status: 'ok', llm_base_url: LLM_BASE_URL }));
 
-app.get('/models', async (c) => {
+app.get('/models', requireAuth, async (c) => {
   const apiKey = c.req.query('api_key');
   if (!apiKey?.trim()) {
     return c.json({ detail: 'api_key 不能为空' }, 400);
@@ -35,7 +36,7 @@ app.get('/models', async (c) => {
   }
 });
 
-app.post('/test', async (c) => {
+app.post('/test', requireAuth, async (c) => {
   const body = await c.req.json<{ api_key?: string; model?: string }>();
   const err = validateChatFields({
     api_key: body.api_key ?? '',
@@ -53,7 +54,7 @@ app.post('/test', async (c) => {
   }
 });
 
-app.post('/judge', async (c) => {
+app.post('/judge', requireAuth, async (c) => {
   const req = await c.req.json<JudgeRequest>();
   const err = validateChatFields({
     api_key: req.api_key,
@@ -79,7 +80,7 @@ app.post('/judge', async (c) => {
   }
 });
 
-app.post('/judge/stream', async (c) => {
+app.post('/judge/stream', requireAuth, async (c) => {
   const req = await c.req.json<JudgeRequest>();
   const err = validateChatFields({
     api_key: req.api_key,
@@ -139,7 +140,7 @@ app.post('/judge/stream', async (c) => {
   return new Response(stream, { headers: SSE_HEADERS });
 });
 
-app.post('/chat/stream', async (c) => {
+app.post('/chat/stream', requireAuth, async (c) => {
   const req = await c.req.json<ChatRequest>();
   const err = validateChatFields(req);
   if (err) return c.json({ detail: err }, 400);
@@ -185,7 +186,7 @@ app.post('/chat/stream', async (c) => {
   return new Response(stream, { headers: SSE_HEADERS });
 });
 
-app.post('/chat', async (c) => {
+app.post('/chat', requireAuth, async (c) => {
   const req = await c.req.json<ChatRequest>();
   const err = validateChatFields(req);
   if (err) return c.json({ detail: err }, 400);

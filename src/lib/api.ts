@@ -3,6 +3,24 @@ import type { LlmSettings } from '../context/LlmSettingsContext';
 const API_BASE = '/api';
 const CHAT_TIMEOUT_MS = 95_000;
 
+function buildHeaders(accessToken: string): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+  };
+}
+
+async function parseErrorResponse(res: Response): Promise<string> {
+  let detail = await res.text().catch(() => '');
+  try {
+    const json = JSON.parse(detail) as { detail?: string };
+    detail = json.detail ?? detail;
+  } catch {
+    /* use raw text */
+  }
+  return detail || `Request failed (${res.status})`;
+}
+
 export interface ChatMessagePayload {
   role: 'user' | 'assistant';
   content: string;
@@ -22,18 +40,16 @@ export interface JudgeResult {
 }
 
 /** 模型列表：经本站 /api 代理，避免浏览器 CORS */
-export async function fetchModels(apiKey: string): Promise<string[]> {
+export async function fetchModels(
+  apiKey: string,
+  accessToken: string
+): Promise<string[]> {
   const params = new URLSearchParams({ api_key: apiKey });
-  const res = await fetch(`${API_BASE}/models?${params}`);
+  const res = await fetch(`${API_BASE}/models?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
   if (!res.ok) {
-    let detail = await res.text().catch(() => '');
-    try {
-      const body = (await res.json()) as { detail?: string };
-      detail = body.detail ?? detail;
-    } catch {
-      /* use raw text */
-    }
-    throw new Error(detail || `获取模型列表失败 (${res.status})`);
+    throw new Error(await parseErrorResponse(res));
   }
   const data = (await res.json()) as { models?: string[] };
   return data.models ?? [];
@@ -60,6 +76,7 @@ export async function sendChatStream(
   message: string,
   history: ChatMessagePayload[],
   settings: LlmSettings,
+  accessToken: string,
   onDelta: (delta: string) => void,
   options?: { signal?: AbortSignal; onConnected?: () => void }
 ): Promise<void> {
@@ -67,7 +84,7 @@ export async function sendChatStream(
 
   const res = await fetch(`${API_BASE}/chat/stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildHeaders(accessToken),
     body: JSON.stringify({
       message,
       history,
@@ -80,14 +97,7 @@ export async function sendChatStream(
   options?.onConnected?.();
 
   if (!res.ok) {
-    let detail = await res.text().catch(() => '');
-    try {
-      const json = JSON.parse(detail) as { detail?: string };
-      detail = json.detail ?? detail;
-    } catch {
-      /* use raw text */
-    }
-    throw new Error(detail || `对话请求失败 (${res.status})`);
+    throw new Error(await parseErrorResponse(res));
   }
 
   if (!res.body) {
@@ -119,6 +129,7 @@ export async function sendChatStream(
 export async function sendJudgeStream(
   payload: JudgePayload,
   settings: LlmSettings,
+  accessToken: string,
   onDelta: (delta: string) => void,
   options?: { signal?: AbortSignal }
 ): Promise<JudgeResult> {
@@ -126,7 +137,7 @@ export async function sendJudgeStream(
 
   const res = await fetch(`${API_BASE}/judge/stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildHeaders(accessToken),
     body: JSON.stringify({
       word: payload.word,
       definition: payload.definition,
@@ -140,14 +151,7 @@ export async function sendJudgeStream(
   });
 
   if (!res.ok) {
-    let detail = await res.text().catch(() => '');
-    try {
-      const json = JSON.parse(detail) as { detail?: string };
-      detail = json.detail ?? detail;
-    } catch {
-      /* use raw text */
-    }
-    throw new Error(detail || `阅卷失败 (${res.status})`);
+    throw new Error(await parseErrorResponse(res));
   }
 
   if (!res.body) {
@@ -188,11 +192,12 @@ export async function sendJudgeStream(
 /** 阅卷：走本站 Agent（/api） */
 export async function sendJudge(
   payload: JudgePayload,
-  settings: LlmSettings
+  settings: LlmSettings,
+  accessToken: string
 ): Promise<JudgeResult> {
   const res = await fetch(`${API_BASE}/judge`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildHeaders(accessToken),
     body: JSON.stringify({
       word: payload.word,
       definition: payload.definition,
@@ -205,14 +210,7 @@ export async function sendJudge(
   });
 
   if (!res.ok) {
-    let detail = await res.text().catch(() => '');
-    try {
-      const json = JSON.parse(detail) as { detail?: string };
-      detail = json.detail ?? detail;
-    } catch {
-      /* use raw text */
-    }
-    throw new Error(detail || `阅卷失败 (${res.status})`);
+    throw new Error(await parseErrorResponse(res));
   }
 
   const data = (await res.json()) as { verdict: string; feedback: string };
@@ -222,11 +220,12 @@ export async function sendJudge(
 
 /** 测试连通性：短 prompt，响应更快 */
 export async function testLlmConnection(
-  settings: Pick<LlmSettings, 'apiKey' | 'model'>
+  settings: Pick<LlmSettings, 'apiKey' | 'model'>,
+  accessToken: string
 ): Promise<string> {
   const res = await fetch(`${API_BASE}/test`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildHeaders(accessToken),
     body: JSON.stringify({
       api_key: settings.apiKey,
       model: settings.model,
@@ -235,14 +234,7 @@ export async function testLlmConnection(
   });
 
   if (!res.ok) {
-    let detail = await res.text().catch(() => '');
-    try {
-      const json = JSON.parse(detail) as { detail?: string };
-      detail = json.detail ?? detail;
-    } catch {
-      /* use raw text */
-    }
-    throw new Error(detail || `测试失败 (${res.status})`);
+    throw new Error(await parseErrorResponse(res));
   }
 
   const data = (await res.json()) as { reply: string };
@@ -252,11 +244,12 @@ export async function testLlmConnection(
 export async function sendChat(
   message: string,
   history: ChatMessagePayload[],
-  settings: LlmSettings
+  settings: LlmSettings,
+  accessToken: string
 ): Promise<string> {
   const res = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildHeaders(accessToken),
     body: JSON.stringify({
       message,
       history,
@@ -266,14 +259,7 @@ export async function sendChat(
   });
 
   if (!res.ok) {
-    let detail = await res.text().catch(() => '');
-    try {
-      const json = JSON.parse(detail) as { detail?: string };
-      detail = json.detail ?? detail;
-    } catch {
-      /* use raw text */
-    }
-    throw new Error(detail || `对话请求失败 (${res.status})`);
+    throw new Error(await parseErrorResponse(res));
   }
 
   const data = (await res.json()) as { reply: string };

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { ChatPanel } from './components/ChatPanel';
-import { AppLanguageProvider } from './context/AppLanguageContext';
+import { AuthLoadingScreen } from './components/AuthLoadingScreen';
+import { useAuth } from './context/AuthContext';
 import { GameSessionProvider } from './context/GameSessionContext';
 import { LlmSettingsProvider } from './context/LlmSettingsContext';
 import { SettingsModalProvider } from './context/SettingsModalContext';
+import { AuthPage } from './pages/AuthPage';
 import { BombardPage } from './pages/BombardPage';
 import { RootBombardPage } from './pages/RootBombardPage';
 
@@ -30,6 +32,7 @@ function navigateTo(page: 'home' | 'bombard', unitId?: number) {
 }
 
 export default function App() {
+  const { session, loading } = useAuth();
   const [page, setPage] = useState<'home' | 'bombard'>(() => getPageFromHash());
   const [unitId, setUnitId] = useState<number>(() => getUnitIdFromHash());
 
@@ -42,9 +45,16 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  if (loading) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (!session) {
+    return <AuthPage />;
+  }
+
   return (
-    <AppLanguageProvider>
-      <LlmSettingsProvider>
+    <LlmSettingsProvider>
         <SettingsModalProvider>
           {page === 'bombard' ? (
             <GameSessionProvider>
@@ -58,7 +68,6 @@ export default function App() {
             </>
           )}
         </SettingsModalProvider>
-      </LlmSettingsProvider>
-    </AppLanguageProvider>
+    </LlmSettingsProvider>
   );
 }

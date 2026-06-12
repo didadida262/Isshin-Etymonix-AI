@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppLanguage } from '../context/AppLanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { useGameSessionOptional } from '../context/GameSessionContext';
 import { useLlmSettings } from '../context/LlmSettingsContext';
 import { fetchModels, sendChatStream, sendJudgeStream, type ChatMessagePayload } from '../lib/api';
@@ -47,6 +48,7 @@ let idCounter = 0;
 export function ChatPanel() {
   const { lang } = useAppLanguage();
   const t = getChatUi(lang);
+  const { getAccessToken } = useAuth();
   const { settings, updateSettings } = useLlmSettings();
   const game = useGameSessionOptional();
   const [isMobile, setIsMobile] = useState(
@@ -226,8 +228,14 @@ export function ChatPanel() {
     };
 
     setLoadingModels(true);
-    fetchModels(apiKey)
-      .then(applyList)
+    getAccessToken()
+      .then((token) => {
+        if (cancelled || !token) {
+          if (!cancelled) setLlmConnected(false);
+          return;
+        }
+        return fetchModels(apiKey, token).then(applyList);
+      })
       .catch(() => {
         if (!cancelled) setLlmConnected(false);
       })
@@ -238,7 +246,7 @@ export function ChatPanel() {
     return () => {
       cancelled = true;
     };
-  }, [settings.apiKey, settings.model, settings.models, updateSettings]);
+  }, [settings.apiKey, settings.model, settings.models, updateSettings, getAccessToken]);
 
   const endDrag = useCallback(
     (clientX: number, clientY: number) => {
@@ -327,6 +335,12 @@ export function ChatPanel() {
       return;
     }
 
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      setError(t.settingsRequired);
+      return;
+    }
+
     const userMsg: ChatMessage = { id: ++idCounter, role: 'user', content: text };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
@@ -353,6 +367,7 @@ export function ChatPanel() {
               userExplanation: text,
             },
             settings,
+            accessToken,
             (delta) => {
               setMessages((prev) => {
                 const existing = prev.find((m) => m.id === assistantId);
@@ -389,6 +404,7 @@ export function ChatPanel() {
           text,
           history,
           settings,
+          accessToken,
           (delta) => {
             setMessages((prev) => {
               const existing = prev.find((m) => m.id === assistantId);
@@ -421,7 +437,7 @@ export function ChatPanel() {
       setLoading(false);
       textareaRef.current?.focus();
     }
-  }, [game, input, loading, messages, settings, t]);
+  }, [game, input, loading, messages, settings, t, getAccessToken]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

@@ -1295,6 +1295,73 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@supabase/auth-js@npm:2.108.1":
+  version: 2.108.1
+  resolution: "@supabase/auth-js@npm:2.108.1"
+  dependencies:
+    tslib: "npm:2.8.1"
+  checksum: 10c0/8bf1bce42703b63284a0562d5a6588ac879b4fdeb477046a92fa9ba6fa0d75de7d85f4177d389654f68b812e359e9f0c9c3a659e7d37d96aaa2f6eba12d9cff0
+  languageName: node
+  linkType: hard
+
+"@supabase/functions-js@npm:2.108.1":
+  version: 2.108.1
+  resolution: "@supabase/functions-js@npm:2.108.1"
+  dependencies:
+    tslib: "npm:2.8.1"
+  checksum: 10c0/da67a82c4a79e049fa3d077f1ca3917a58707fa35df642d39d8b23edf5056a2a2427ea201d3f49bb11eafb06413dfde552a6bf63b2da4865a421d44c690c0fe7
+  languageName: node
+  linkType: hard
+
+"@supabase/phoenix@npm:^0.4.2":
+  version: 0.4.2
+  resolution: "@supabase/phoenix@npm:0.4.2"
+  checksum: 10c0/7d426ea70715539d76ef09a5d2364b335f848ffc32cefdc07b67707a9415c654d3f82ebf611851fceb987bdde31f1f77c088a05c40e372b65221801ca502945c
+  languageName: node
+  linkType: hard
+
+"@supabase/postgrest-js@npm:2.108.1":
+  version: 2.108.1
+  resolution: "@supabase/postgrest-js@npm:2.108.1"
+  dependencies:
+    tslib: "npm:2.8.1"
+  checksum: 10c0/29168464f44a723175ef510410df36f993581229d617816dfd33eb9bf5378742910fb9c18508040188ba2a16c20988f84d6f722decd79e34190daea35a5374af
+  languageName: node
+  linkType: hard
+
+"@supabase/realtime-js@npm:2.108.1":
+  version: 2.108.1
+  resolution: "@supabase/realtime-js@npm:2.108.1"
+  dependencies:
+    "@supabase/phoenix": "npm:^0.4.2"
+    tslib: "npm:2.8.1"
+  checksum: 10c0/bb4cea92714389b6f5f4b626e4c3cbacee2a57c543b71217d3d3032bfe35574cd26fe305bfbde0426230ca3b887e2116c78d47aa37117160b2b9d5ba11564ded
+  languageName: node
+  linkType: hard
+
+"@supabase/storage-js@npm:2.108.1":
+  version: 2.108.1
+  resolution: "@supabase/storage-js@npm:2.108.1"
+  dependencies:
+    iceberg-js: "npm:^0.8.1"
+    tslib: "npm:2.8.1"
+  checksum: 10c0/5a010b4d3af565b26ceb1d07e3d3f0541c8fe538350931c4fc15d0b560b3e40c354cc66259882a8b378e70dace59bc83dd53849feb48509155b8b342e00724a2
+  languageName: node
+  linkType: hard
+
+"@supabase/supabase-js@npm:^2.108.1":
+  version: 2.108.1
+  resolution: "@supabase/supabase-js@npm:2.108.1"
+  dependencies:
+    "@supabase/auth-js": "npm:2.108.1"
+    "@supabase/functions-js": "npm:2.108.1"
+    "@supabase/postgrest-js": "npm:2.108.1"
+    "@supabase/realtime-js": "npm:2.108.1"
+    "@supabase/storage-js": "npm:2.108.1"
+  checksum: 10c0/9b8c3dd7153b4eb3c0bf47296e326c3e57bf77b979a5dc5d18b96a25c041195de942d227d13a5ce83a20203163580204e9102f2346f0a9461de4042b95f69f03
+  languageName: node
+  linkType: hard
+
 "@types/babel__core@npm:^7.20.5":
   version: 7.20.5
   resolution: "@types/babel__core@npm:7.20.5"
@@ -1607,12 +1674,14 @@ __metadata:
     "@fortawesome/react-fontawesome": "npm:^3.3.0"
     "@langchain/core": "npm:^1.1.48"
     "@langchain/openai": "npm:^1.4.7"
+    "@supabase/supabase-js": "npm:^2.108.1"
     "@types/react": "npm:^19.0.12"
     "@types/react-dom": "npm:^19.0.4"
     "@vitejs/plugin-react": "npm:^4.3.4"
     autoprefixer: "npm:^10.4.21"
     framer-motion: "npm:^12.6.3"
     hono: "npm:^4.12.23"
+    jose: "npm:^6.2.3"
     postcss: "npm:^8.5.3"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
@@ -1991,6 +2060,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"iceberg-js@npm:^0.8.1":
+  version: 0.8.1
+  resolution: "iceberg-js@npm:0.8.1"
+  checksum: 10c0/e504da64cc26e8ad7c5344353a7203c671a740c14eb6086f20505f5e9739cab774493e616032530c962df97f2a855115cc2e89a47dd81581df5917b21a69ec48
+  languageName: node
+  linkType: hard
+
 "is-binary-path@npm:~2.1.0":
   version: 2.1.0
   resolution: "is-binary-path@npm:2.1.0"
@@ -2045,6 +2121,13 @@ __metadata:
   bin:
     jiti: bin/jiti.js
   checksum: 10c0/77b61989c758ff32407cdae8ddc77f85e18e1a13fc4977110dbd2e05fc761842f5f71bce684d9a01316e1c4263971315a111385759951080bbfe17cbb5de8f7a
+  languageName: node
+  linkType: hard
+
+"jose@npm:^6.2.3":
+  version: 6.2.3
+  resolution: "jose@npm:6.2.3"
+  checksum: 10c0/aa91bccba22cc84d86308f833749bcb0b00441e35c24e0ac79abeac5f76dc62d47bdef9c1da6a0c609f5da6478595f52b252085888b89dbdb163861e40ea4188
   languageName: node
   linkType: hard
 
@@ -2945,7 +3028,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.4.0":
+"tslib@npm:2.8.1, tslib@npm:^2.4.0":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62

@@ -15,7 +15,10 @@ export function SiteBrand({ title, compact = false, className, logoSize = 40 }: 
       <img
         src={logoUrl}
         alt="Isshin Etyomnix AI"
-        className="-ml-0.5 h-12 shrink-0 rounded-lg border border-white/10 bg-white/[0.06] object-contain p-1"
+        width={logoSize}
+        height={logoSize}
+        className="-ml-0.5 shrink-0 rounded-lg border border-white/10 bg-white/[0.06] object-contain p-1"
+        style={{ width: logoSize, height: logoSize }}
       />
       <h1
         className={cn(

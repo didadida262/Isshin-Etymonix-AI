@@ -5,14 +5,40 @@ An English word-root learning app built with **React + TypeScript + Vite + Tailw
 ## Architecture
 
 ```
-Frontend (React)  →  Model list: direct to third-party API
-                  →  Chat / grading: via Cloudflare Worker (/api Agent)
-                  →  Agent calls a hardcoded LLM completion endpoint
+Frontend (React)  →  Supabase Auth (sign in / sign up)
+                  →  /api/* with Bearer JWT (Cloudflare Worker)
+                  →  Agent calls LLM completion endpoint
 ```
 
-- **Frontend**: Configure API Key / model; model list connects directly to `aiplatform.njsrd.com`
+- **Frontend**: Supabase email/password auth; API Key / model in Settings
+- **Auth**: Supabase issues JWT; Worker verifies `SUPABASE_JWT_SECRET` on protected routes
 - **Agent (/api)**: Judge persona, streaming chat, grading; internally calls `https://aiplatform.njsrd.com/llm/v1`
-- **Deployment**: Cloudflare Pages builds `dist` + Worker (`run_worker_first` handles `/api/*`); no Docker or separate backend server required
+- **Deployment**: Cloudflare Worker + static assets (`run_worker_first` handles `/api/*`)
+
+## Supabase Setup
+
+1. Create a project at [supabase.com](https://supabase.com)
+2. **Authentication → Providers → Email**: enable Email provider
+3. For local dev without email confirmation: **Authentication → Providers → Email** → disable “Confirm email” (optional)
+4. Copy from **Project Settings → API**:
+   - Project URL → `VITE_SUPABASE_URL`
+   - anon public key → `VITE_SUPABASE_ANON_KEY`
+   - JWT Secret → `SUPABASE_JWT_SECRET` (Worker only, never expose in frontend)
+
+```bash
+cp .env.example .env
+cp .dev.vars.example .dev.vars
+# Fill in values, then:
+corepack yarn dev
+```
+
+Production Worker secret:
+
+```bash
+wrangler secret put SUPABASE_JWT_SECRET --config wrangler.worker.toml
+```
+
+Cloudflare Pages: add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as build environment variables.
 
 ## Local Development
 
@@ -24,8 +50,9 @@ corepack yarn dev
 
 Open `http://localhost:5173` in your browser (Vite + Cloudflare plugin starts the Worker alongside the app; `/api` behaves the same as production):
 
-1. Click the **gear** icon at the top to open Settings, enter your API Key, click "Fetch Model List", and select a model
-2. Type a question in the bottom-right **AI Assistant** panel; press Enter to send (Shift+Enter for a new line)
+1. **Sign in** or **create an account** on the auth screen
+2. Click the **gear** icon to open Settings, enter your API Key, fetch models, and select one
+3. Use the bottom-right **AI Assistant** panel; Enter to send, Shift+Enter for a new line
 
 ## Project Structure
 
@@ -49,7 +76,8 @@ yarn build:check
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/health` | Health check |
-| POST | `/api/chat/stream` | SSE streaming chat (recommended, Agent) |
-| POST | `/api/chat` | Non-streaming chat |
-| POST | `/api/judge` | Grading / evaluation |
+| GET | `/api/health` | Health check (public) |
+| GET | `/api/models` | Model list (auth required) |
+| POST | `/api/chat/stream` | SSE streaming chat (auth required) |
+| POST | `/api/chat` | Non-streaming chat (auth required) |
+| POST | `/api/judge` | Grading / evaluation (auth required) |

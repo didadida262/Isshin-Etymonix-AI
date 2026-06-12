@@ -2,6 +2,7 @@ import { faEye, faEyeSlash, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useLlmSettings, type LlmSettings } from '../context/LlmSettingsContext';
 import { LLM_BASE_URL } from '../lib/llmEndpoints';
 import { fetchModels, testLlmConnection } from '../lib/api';
@@ -21,6 +22,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
 }
 
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
+  const { getAccessToken } = useAuth();
   const { settings, saveSettings } = useLlmSettings();
   const [draft, setDraft] = useState<LlmSettings>(settings);
   const [models, setModels] = useState<string[]>([]);
@@ -79,7 +81,12 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     setLoadingModels(true);
     setError('');
     try {
-      const list = await fetchModels(draft.apiKey.trim());
+      const token = await getAccessToken();
+      if (!token) {
+        setError('请先登录');
+        return;
+      }
+      const list = await fetchModels(draft.apiKey.trim(), token);
       setModels(list);
       if (list.length === 0) {
         setError('未获取到模型，请检查 API Key');
@@ -96,7 +103,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     } finally {
       setLoadingModels(false);
     }
-  }, [draft.apiKey, draft.model]);
+  }, [draft.apiKey, draft.model, getAccessToken]);
 
   const displayModels = useMemo(() => {
     const list = models.length > 0 ? models : draft.models;
@@ -134,10 +141,18 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     setTestResult(null);
     setError('');
     try {
-      const reply = await testLlmConnection({
-        apiKey: draft.apiKey.trim(),
-        model: draft.model.trim(),
-      });
+      const token = await getAccessToken();
+      if (!token) {
+        setTestResult({ ok: false, message: '请先登录' });
+        return;
+      }
+      const reply = await testLlmConnection(
+        {
+          apiKey: draft.apiKey.trim(),
+          model: draft.model.trim(),
+        },
+        token
+      );
       const preview = reply.trim().slice(0, 80);
       setTestResult({
         ok: true,
@@ -151,7 +166,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     } finally {
       setTesting(false);
     }
-  }, [draft.apiKey, draft.model]);
+  }, [draft.apiKey, draft.model, getAccessToken]);
 
   const handleSave = () => {
     if (!draft.apiKey.trim()) {

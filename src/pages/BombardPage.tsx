@@ -2,6 +2,7 @@ import { faGlobe, faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FinaleOverlay } from '../components/FinaleOverlay';
 import { SettingsButton } from '../components/SettingsButton';
+import { UserMenu } from '../components/UserMenu';
 import logoUrl from '../assets/Isshin-Etymonix-AI_logo.png';
 import { MAX_ROUNDS, useGameSession } from '../context/GameSessionContext';
 import { useAppLanguage } from '../context/AppLanguageContext';
@@ -308,7 +309,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         );
 
         await new Promise<void>((r) => {
-          requestAnimationFrame(() => requestAnimationFrame(r));
+          requestAnimationFrame(() => requestAnimationFrame(() => r()));
         });
 
         await scrollToCard(card);
@@ -569,6 +570,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
               <FontAwesomeIcon icon={faGlobe} className="h-4 w-4 text-cyan-400" />
             </button>
             <SettingsButton onClick={openSettings} className="h-10 w-10 md:h-11 md:w-11" />
+            <UserMenu />
             <button
               type="button"
               onClick={onBack}

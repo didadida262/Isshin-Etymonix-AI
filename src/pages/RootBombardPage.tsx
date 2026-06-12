@@ -5,6 +5,7 @@ import { useCallback, useLayoutEffect, useRef, useState, useEffect } from 'react
 import React from 'react';
 import { AmbientBackdrop } from '../components/AmbientBackdrop';
 import { SettingsButton } from '../components/SettingsButton';
+import { UserMenu } from '../components/UserMenu';
 import { SiteBrand } from '../components/SiteBrand';
 import { useSettingsModal } from '../context/SettingsModalContext';
 import { getAvailableRootUnits } from '../data/rootUnits';
@@ -126,6 +127,7 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
         <SiteBrand title={t.title} />
 
         <div className="flex items-center gap-2">
+          <UserMenu />
           <SettingsButton onClick={openSettings} />
           <button
             type="button"

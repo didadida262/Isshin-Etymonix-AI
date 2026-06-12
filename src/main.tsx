@@ -4,6 +4,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { AppLanguageProvider } from './context/AppLanguageContext';
+import { AuthProvider } from './context/AuthContext';
 import './index.css';
 
 config.autoAddCss = false;
@@ -11,7 +13,11 @@ config.autoAddCss = false;
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <AppLanguageProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </AppLanguageProvider>
     </BrowserRouter>
   </StrictMode>,
 );
