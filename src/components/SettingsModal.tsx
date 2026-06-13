@@ -1,11 +1,12 @@
 import { faEye, faEyeSlash, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLlmSettings, type LlmSettings } from '../context/LlmSettingsContext';
 import { LLM_BASE_URL } from '../lib/llmEndpoints';
-import { fetchModels, testLlmConnection } from '../lib/api';
+import { DEFAULT_MODEL } from '../lib/llmConstants';
+import { testLlmConnection } from '../lib/api';
 import { cn } from '../lib/cn';
 
 interface SettingsModalProps {
@@ -25,18 +26,14 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const { getAccessToken } = useAuth();
   const { settings, saveSettings } = useLlmSettings();
   const [draft, setDraft] = useState<LlmSettings>(settings);
-  const [models, setModels] = useState<string[]>([]);
-  const [loadingModels, setLoadingModels] = useState(false);
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState('');
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
-  const modelListRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     if (open) {
       setDraft(settings);
-      setModels(settings.models);
       setError('');
       setTestResult(null);
       setShowApiKey(false);
@@ -73,68 +70,13 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     };
   }, [open]);
 
-  const loadModels = useCallback(async () => {
-    if (!draft.apiKey.trim()) {
-      setError('请先填写 API Key');
-      return;
-    }
-    setLoadingModels(true);
-    setError('');
-    try {
-      const token = await getAccessToken();
-      if (!token) {
-        setError('请先登录');
-        return;
-      }
-      const list = await fetchModels(draft.apiKey.trim(), token);
-      setModels(list);
-      if (list.length === 0) {
-        setError('未获取到模型，请检查 API Key');
-      } else {
-        setDraft((d) => ({
-          ...d,
-          models: list,
-          model: !d.model || !list.includes(d.model) ? list[0] : d.model,
-        }));
-      }
-    } catch (err) {
-      setModels([]);
-      setError(err instanceof Error ? err.message : '获取模型失败');
-    } finally {
-      setLoadingModels(false);
-    }
-  }, [draft.apiKey, draft.model, getAccessToken]);
-
-  const displayModels = useMemo(() => {
-    const list = models.length > 0 ? models : draft.models;
-    if (draft.model && !list.includes(draft.model)) {
-      return [draft.model, ...list];
-    }
-    return list;
-  }, [models, draft.models, draft.model]);
-
-  const scrollToSelectedModel = useCallback(() => {
-    const list = modelListRef.current;
-    if (!list || !draft.model.trim()) return;
-    const selected = list.querySelector<HTMLElement>('[data-selected-model="true"]');
-    selected?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [draft.model]);
-
-  useEffect(() => {
-    if (!open || loadingModels || displayModels.length === 0 || !draft.model.trim()) {
-      return;
-    }
-    const timer = window.setTimeout(scrollToSelectedModel, 220);
-    return () => window.clearTimeout(timer);
-  }, [open, loadingModels, displayModels, draft.model, scrollToSelectedModel]);
-
   const handleTest = useCallback(async () => {
     if (!draft.apiKey.trim()) {
       setTestResult({ ok: false, message: '请先填写 API Key' });
       return;
     }
     if (!draft.model.trim()) {
-      setTestResult({ ok: false, message: '请先选择模型' });
+      setTestResult({ ok: false, message: '请先填写模型名称' });
       return;
     }
     setTesting(true);
@@ -174,13 +116,12 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       return;
     }
     if (!draft.model.trim()) {
-      setError('请选择模型');
+      setError('模型名称不能为空');
       return;
     }
     saveSettings({
       apiKey: draft.apiKey.trim(),
       model: draft.model.trim(),
-      models: models.length > 0 ? models : draft.models,
     });
     onClose();
   };
@@ -266,68 +207,22 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             </section>
 
             <section className="mb-4">
-              <div className="mb-3 flex items-center justify-between border-b border-white/[0.08] pb-2">
-                <h3 className="text-sm font-medium text-zinc-300">模型列表</h3>
-                <button
-                  type="button"
-                  onClick={() => void loadModels()}
-                  disabled={loadingModels}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 disabled:opacity-50"
-                >
-                  {loadingModels ? (
-                    <span className="inline-flex items-center gap-1">
-                      <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-                      加载中
-                    </span>
-                  ) : (
-                    '获取模型列表'
-                  )}
-                </button>
-              </div>
-              {loadingModels ? (
-                <div className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] py-8 text-sm text-zinc-400">
-                  <FontAwesomeIcon icon={faSpinner} className="animate-spin text-cyan-400" />
-                  正在加载模型列表...
-                </div>
-              ) : displayModels.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-3 py-6 text-center text-xs text-zinc-500">
-                  点击「获取模型列表」加载可用模型
-                </p>
-              ) : (
-                <ul
-                  ref={modelListRef}
-                  className="max-h-56 divide-y divide-white/[0.08] overflow-y-auto rounded-lg border border-white/10 bg-white/[0.03]"
-                >
-                  {displayModels.map((m) => {
-                    const selected = draft.model === m;
-                    return (
-                      <li key={m}>
-                        <button
-                          type="button"
-                          data-selected-model={selected ? 'true' : undefined}
-                          onClick={() => {
-                            setDraft((d) => ({ ...d, model: m }));
-                            setTestResult(null);
-                          }}
-                          className={cn(
-                            'w-full px-3 py-2.5 text-left text-sm leading-snug break-all transition-colors',
-                            selected
-                              ? 'bg-indigo-500/15 text-cyan-100'
-                              : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-                          )}
-                        >
-                          {m}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {displayModels.length > 0 && (
-                <p className="mt-2 text-[11px] text-zinc-500">
-                  共 {displayModels.length} 个模型，点击选择
-                </p>
-              )}
+              <SectionTitle>模型名称</SectionTitle>
+              <label className="block">
+                <input
+                  type="text"
+                  value={draft.model}
+                  onChange={(e) => {
+                    setDraft((d) => ({ ...d, model: e.target.value }));
+                    setTestResult(null);
+                  }}
+                  placeholder={DEFAULT_MODEL}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/40"
+                />
+              </label>
+              <p className="mt-2 text-[11px] text-zinc-500">
+                填写要使用的模型名称，调用时将直接使用该值
+              </p>
             </section>
 
             {error && <p className="mb-3 text-xs text-red-400">{error}</p>}

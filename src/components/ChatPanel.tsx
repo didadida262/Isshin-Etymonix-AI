@@ -6,7 +6,7 @@ import { useAppLanguage } from '../context/AppLanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useGameSessionOptional } from '../context/GameSessionContext';
 import { useLlmSettings } from '../context/LlmSettingsContext';
-import { fetchModels, sendChatStream, sendJudgeStream, type ChatMessagePayload } from '../lib/api';
+import { sendChatStream, sendJudgeStream, type ChatMessagePayload } from '../lib/api';
 import {
   DOCKED_COLLAPSED_HEIGHT,
   DOCKED_INSET,
@@ -49,13 +49,12 @@ export function ChatPanel() {
   const { lang } = useAppLanguage();
   const t = getChatUi(lang);
   const { getAccessToken } = useAuth();
-  const { settings, updateSettings } = useLlmSettings();
+  const { settings } = useLlmSettings();
   const game = useGameSessionOptional();
   const [isMobile, setIsMobile] = useState(
     () => window.innerWidth <= MOBILE_BREAKPOINT
   );
   const [collapsed, setCollapsed] = useState(true);
-  const [loadingModels, setLoadingModels] = useState(false);
   const [llmConnected, setLlmConnected] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -202,51 +201,10 @@ export function ChatPanel() {
   }, [input, resizeTextarea]);
 
   useEffect(() => {
-    let cancelled = false;
     const apiKey = settings.apiKey.trim();
     const model = settings.model.trim();
-
-    if (!apiKey || !model) {
-      setLlmConnected(false);
-      setLoadingModels(false);
-      return;
-    }
-
-    const applyList = (list: string[]) => {
-      if (cancelled) return;
-      if (list.length === 0 || !list.includes(model)) {
-        setLlmConnected(false);
-        return;
-      }
-      setLlmConnected(true);
-      if (settings.models.length === 0 || !settings.models.includes(model)) {
-        updateSettings({
-          models: list,
-          model: list.includes(model) ? model : list[0],
-        });
-      }
-    };
-
-    setLoadingModels(true);
-    getAccessToken()
-      .then((token) => {
-        if (cancelled || !token) {
-          if (!cancelled) setLlmConnected(false);
-          return;
-        }
-        return fetchModels(apiKey, token).then(applyList);
-      })
-      .catch(() => {
-        if (!cancelled) setLlmConnected(false);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingModels(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [settings.apiKey, settings.model, settings.models, updateSettings, getAccessToken]);
+    setLlmConnected(Boolean(apiKey && model));
+  }, [settings.apiKey, settings.model]);
 
   const endDrag = useCallback(
     (clientX: number, clientY: number) => {
@@ -547,9 +505,7 @@ export function ChatPanel() {
             title={
               llmConnected
                 ? t.llmConnected
-                : loadingModels
-                  ? t.llmChecking
-                  : t.llmDisconnected
+                : t.llmDisconnected
             }
           />
           <span

@@ -4,7 +4,6 @@ import { handle } from 'hono/cloudflare-pages';
 import { requireAuth, type AuthBindings, type AuthVariables } from '../_lib/auth';
 import { runChat, runQuickTest, streamChat } from '../_lib/chat';
 import { parseJudgeResponse, runJudge, streamJudge } from '../_lib/judge';
-import { fetchModels } from '../_lib/models';
 import {
   type ChatRequest,
   type JudgeRequest,
@@ -22,20 +21,6 @@ const SSE_HEADERS = {
 };
 
 app.get('/health', (c) => c.json({ status: 'ok', llm_base_url: LLM_BASE_URL }));
-
-app.get('/models', requireAuth, async (c) => {
-  const apiKey = c.req.query('api_key');
-  if (!apiKey?.trim()) {
-    return c.json({ detail: 'api_key 不能为空' }, 400);
-  }
-  try {
-    const { models, raw } = await fetchModels(apiKey.trim());
-    return c.json({ models, raw });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    return c.json({ detail: message }, 502);
-  }
-});
 
 app.post('/test', requireAuth, async (c) => {
   const body = await c.req.json<{ api_key?: string; model?: string }>();

@@ -6,13 +6,13 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { DEFAULT_MODEL } from '../lib/llmConstants';
 
 const STORAGE_KEY = 'llm-settings';
 
 export interface LlmSettings {
   apiKey: string;
   model: string;
-  models: string[];
 }
 
 interface LlmSettingsContextValue {
@@ -23,8 +23,7 @@ interface LlmSettingsContextValue {
 
 const defaultSettings: LlmSettings = {
   apiKey: '',
-  model: '',
-  models: [],
+  model: DEFAULT_MODEL,
 };
 
 function loadSettings(): LlmSettings {
@@ -34,8 +33,7 @@ function loadSettings(): LlmSettings {
     const parsed = JSON.parse(raw) as Partial<LlmSettings>;
     return {
       apiKey: parsed.apiKey || defaultSettings.apiKey,
-      model: parsed.model || '',
-      models: Array.isArray(parsed.models) ? parsed.models : [],
+      model: parsed.model?.trim() || DEFAULT_MODEL,
     };
   } catch {
     return defaultSettings;

@@ -39,22 +39,6 @@ export interface JudgeResult {
   feedback: string;
 }
 
-/** 模型列表：经本站 /api 代理，避免浏览器 CORS */
-export async function fetchModels(
-  apiKey: string,
-  accessToken: string
-): Promise<string[]> {
-  const params = new URLSearchParams({ api_key: apiKey });
-  const res = await fetch(`${API_BASE}/models?${params}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) {
-    throw new Error(await parseErrorResponse(res));
-  }
-  const data = (await res.json()) as { models?: string[] };
-  return data.models ?? [];
-}
-
 function parseSsePayload(line: string): {
   content?: string;
   error?: string;
