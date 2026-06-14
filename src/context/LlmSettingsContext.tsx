@@ -26,13 +26,17 @@ const defaultSettings: LlmSettings = {
   model: DEFAULT_MODEL,
 };
 
+function sanitizeApiKey(key: string): string {
+  return key.trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
+}
+
 function loadSettings(): LlmSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSettings;
     const parsed = JSON.parse(raw) as Partial<LlmSettings>;
     return {
-      apiKey: parsed.apiKey || defaultSettings.apiKey,
+      apiKey: sanitizeApiKey(parsed.apiKey || defaultSettings.apiKey),
       model: parsed.model?.trim() || DEFAULT_MODEL,
     };
   } catch {
@@ -46,8 +50,13 @@ export function LlmSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<LlmSettings>(loadSettings);
 
   const saveSettings = useCallback((next: LlmSettings) => {
-    setSettings(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    const sanitized = {
+      ...next,
+      apiKey: sanitizeApiKey(next.apiKey),
+      model: next.model.trim(),
+    };
+    setSettings(sanitized);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
   }, []);
 
   const updateSettings = useCallback((patch: Partial<LlmSettings>) => {

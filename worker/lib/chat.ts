@@ -62,6 +62,9 @@ function chunkText(chunk: { content: unknown }): string {
 
 function normalizeLlmError(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err);
+  if (/401|未授权|MODEL_AUTHENTICATION|invalid.*api.*key|authentication/i.test(message)) {
+    return '大模型 API Key 无效或已过期，请在设置中重新填写并点击「测试」';
+  }
   if (/network connection lost|fetch failed|terminated|aborted/i.test(message)) {
     return '大模型连接中断（可能思考时间过长或网络不稳定），请重试或换更小模型';
   }
