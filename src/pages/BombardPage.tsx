@@ -1,5 +1,6 @@
 import { faGlobe, faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { BombardBackdrop } from '../components/BombardBackdrop';
 import { FinaleOverlay } from '../components/FinaleOverlay';
 import { SettingsButton } from '../components/SettingsButton';
 import { UserMenu } from '../components/UserMenu';
@@ -444,6 +445,8 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 
   return (
     <div className="relative min-h-screen bg-zinc-950 text-zinc-100">
+      <BombardBackdrop />
+
       {/* ── 顶栏 ── */}
       <FinaleOverlay />
 
@@ -762,7 +765,7 @@ const FlipCard = React.memo(
     <motion.div
       ref={ref}
       className={cn(
-        'perspective-[800px] cursor-pointer',
+        'perspective-[800px] cursor-pointer group/card',
         isFocused && 'relative z-[25]'
       )}
       style={{ perspective: '800px', transformOrigin: 'center center' }}
@@ -785,9 +788,23 @@ const FlipCard = React.memo(
       >
         {/* ──── 背面（统一设计） ──── */}
         <div
-          className={`${BACK_CLASSES.outer} relative flex aspect-[4/3] items-center justify-center overflow-hidden`}
+          className={cn(
+            BACK_CLASSES.outer,
+            'relative flex aspect-[4/3] items-center justify-center overflow-hidden',
+            'transition-[border-color,box-shadow] duration-300',
+            !isFocused &&
+              'group-hover/card:border-cyan-400/35 group-hover/card:shadow-[0_0_52px_-8px_rgba(6,182,212,0.42),inset_0_0_60px_-20px_rgba(6,182,212,0.2)]',
+            highlighted &&
+              'border-cyan-400/45 shadow-[0_0_56px_-6px_rgba(6,182,212,0.55),inset_0_0_60px_-18px_rgba(6,182,212,0.22)]'
+          )}
           style={{ backfaceVisibility: 'hidden' }}
         >
+          {!reduceMotion && !isFocused && (
+            <div
+              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover/card:opacity-100 group-hover/card:animate-sheen-sweep-once bg-[linear-gradient(105deg,transparent_35%,rgba(34,211,238,0.12)_50%,transparent_65%)]"
+              aria-hidden
+            />
+          )}
           {/* 动态光晕背景 - 性能优化：仅在高亮时启用 */}
           {!reduceMotion && <div className={BACK_CLASSES.glow} aria-hidden />}
           
@@ -807,10 +824,10 @@ const FlipCard = React.memo(
           {/* 四角装饰 - 性能优化：简化 */}
           {!reduceMotion && (
             <>
-              <div className="absolute left-4 top-4 h-4 w-4 border-l-2 border-t-2 border-cyan-500/40" aria-hidden />
-              <div className="absolute right-4 top-4 h-4 w-4 border-r-2 border-t-2 border-cyan-500/40" aria-hidden />
-              <div className="absolute bottom-4 left-4 h-4 w-4 border-b-2 border-l-2 border-cyan-500/40" aria-hidden />
-              <div className="absolute bottom-4 right-4 h-4 w-4 border-b-2 border-r-2 border-cyan-500/40" aria-hidden />
+              <div className="absolute left-4 top-4 h-4 w-4 border-l-2 border-t-2 border-cyan-500/40 transition-colors duration-300 group-hover/card:border-cyan-300/70" aria-hidden />
+              <div className="absolute right-4 top-4 h-4 w-4 border-r-2 border-t-2 border-cyan-500/40 transition-colors duration-300 group-hover/card:border-cyan-300/70" aria-hidden />
+              <div className="absolute bottom-4 left-4 h-4 w-4 border-b-2 border-l-2 border-cyan-500/40 transition-colors duration-300 group-hover/card:border-cyan-300/70" aria-hidden />
+              <div className="absolute bottom-4 right-4 h-4 w-4 border-b-2 border-r-2 border-cyan-500/40 transition-colors duration-300 group-hover/card:border-cyan-300/70" aria-hidden />
             </>
           )}
           

@@ -555,7 +555,7 @@ export function ChatPanel() {
             >
               <div
                 ref={scrollRef}
-                className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3"
+                className="scrollbar-chat min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3"
               >
                 {messages.length === 0 && !loading && (
                   <div
