@@ -1,4 +1,4 @@
-import logoUrl from '../assets/Isshin-Etymonix-AI_logo.png';
+import logoUrl from '../assets/logo.png';
 import { cn } from '../lib/cn';
 
 interface SiteBrandProps {
@@ -27,10 +27,10 @@ export function SiteBrand({
         width={logoSize}
         height={logoSize}
         className={cn(
-          '-ml-0.5 shrink-0 rounded-lg object-contain p-1',
+          '-ml-0.5 shrink-0 rounded-lg object-contain',
           light
-            ? 'border border-zinc-200/90 bg-white/80 shadow-sm'
-            : 'border border-white/10 bg-white/[0.06]'
+            ? 'border border-zinc-200/90 bg-white/80 p-1 shadow-sm'
+            : 'border border-white/15 bg-white shadow-sm shadow-black/25'
         )}
         style={{ width: logoSize, height: logoSize }}
       />

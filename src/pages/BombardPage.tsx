@@ -5,7 +5,7 @@ import { BombardCardAuras } from '../components/BombardCardAuras';
 import { FinaleOverlay } from '../components/FinaleOverlay';
 import { SettingsButton } from '../components/SettingsButton';
 import { UserMenu } from '../components/UserMenu';
-import logoUrl from '../assets/Isshin-Etymonix-AI_logo.png';
+import logoUrl from '../assets/logo.png';
 import { MAX_ROUNDS, useGameSession } from '../context/GameSessionContext';
 import { useAppLanguage } from '../context/AppLanguageContext';
 import { useSettingsModal } from '../context/SettingsModalContext';
@@ -453,8 +453,8 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 
       <header className="relative z-40 sticky top-0 grid min-h-[3.5rem] grid-cols-[1fr_auto_1fr] items-center border-b border-white/[0.08] bg-zinc-950/70 px-3 py-3 backdrop-blur-xl md:min-h-[4rem] md:px-6 md:py-3.5">
           <div className="flex min-w-0 items-center justify-self-start gap-2.5 md:gap-3">
-            <img src={logoUrl} alt="" className="hidden h-10 shrink-0 object-contain sm:block" />
-            <img src={logoUrl} alt="" className="h-10 shrink-0 object-contain sm:hidden" />
+            <img src={logoUrl} alt="" className="hidden h-10 shrink-0 rounded-lg border border-white/15 bg-white object-contain shadow-sm shadow-black/20 sm:block" />
+            <img src={logoUrl} alt="" className="h-10 shrink-0 rounded-lg border border-white/15 bg-white object-contain shadow-sm shadow-black/20 sm:hidden" />
             <h1 className="min-w-0 font-display text-sm font-semibold tracking-tight text-white md:text-lg">
               <span className="hidden md:inline">
                 Unit {unitId} · {ui.titleSuffix}
