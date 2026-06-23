@@ -1,36 +1,66 @@
-# Etymonix
+# Etymonix · English Root Zhan
 
-An English word-root learning app built with **React + TypeScript + Vite + Tailwind CSS + Framer Motion**, with a ChatGPT-style AI chat panel in the bottom-right corner.
+> Drill English word roots into long-term memory with **bombard sessions** and **AI grading**.
+
+## About
+
+Etymonix (Isshin English Root Zhan) is a web app for word-root memorization. Vocabulary is organized by Unit; learners flip cards in timed **bombard** drills to recall root meanings, then submit explanations to the AI **Judge** for real-time grading. A bottom-right chat panel is always available for etymology, morphology, and study tips.
+
+## Highlights
+
+| Feature | Description |
+|---------|-------------|
+| **Root Bombard** | Unit-based card draws with flip-and-recall drills and timed definition reveals |
+| **AI Judge** | Dedicated grading persona with streaming correct/incorrect verdicts and on-demand Q&A |
+| **Session Scoring** | 5 cards per round; end-of-session accuracy with grades (Excellent / Good / Pass / Fail) |
+| **BYOK Models** | Configure your API key and model in Settings to connect any supported LLM |
+| **Bilingual UI** | Switch between Chinese and English in one click |
+
+## Quick Start
+
+1. **Sign up** or **sign in** (Supabase email auth)
+2. Open **Settings** (gear icon) → enter your API key, fetch models, and select one
+3. Pick a Unit on the home screen → **Start Bombard**
+4. Recall the root from each card, submit your explanation in the **Judge panel** (bottom-right); ask follow-up questions anytime
+
+## Tech Stack
+
+React · TypeScript · Vite · Tailwind CSS · Framer Motion · Supabase Auth · Cloudflare Worker
 
 ## Architecture
 
 ```
 Frontend (React)  →  Supabase Auth (sign in / sign up)
-                  →  /api/* with Bearer JWT (Cloudflare Worker)
-                  →  Agent calls LLM completion endpoint
+                →  /api/* with Bearer JWT (Cloudflare Worker)
+                 →  Agent calls LLM completion endpoint
 ```
 
-- **Frontend**: Supabase email/password auth; API Key / model in Settings
+- **Frontend**: Supabase email/password auth; API key and model configured in Settings
 - **Auth**: Supabase issues JWT; Worker verifies `SUPABASE_JWT_SECRET` on protected routes
 - **Agent (/api)**: Judge persona, streaming chat, grading; internally calls `https://aiplatform.njsrd.com/llm/v1`
-- **Deployment**: Cloudflare Worker + static assets (`run_worker_first` handles `/api/*`)
+- **Deployment**: Cloudflare Worker + static assets (`run_worker_first` handles `/api/*` first)
 
-## Supabase Setup
+## Local Development
+
+```bash
+yarn install
+cp .env.example .env
+cp .dev.vars.example .dev.vars
+# Fill in Supabase and Worker variables, then:
+corepack yarn dev
+```
+
+Open `http://localhost:5173` (Vite + Cloudflare plugin starts the Worker alongside the app; local `/api` matches production behavior).
+
+### Supabase Setup
 
 1. Create a project at [supabase.com](https://supabase.com)
-2. **Authentication → Providers → Email**: enable Email provider
-3. For local dev without email confirmation: **Authentication → Providers → Email** → disable “Confirm email” (optional)
+2. **Authentication → Providers → Email**: enable the Email provider
+3. For local dev without email confirmation: disable “Confirm email” (optional)
 4. Copy from **Project Settings → API**:
    - Project URL → `VITE_SUPABASE_URL`
    - anon public key → `VITE_SUPABASE_ANON_KEY`
-   - JWT Secret → `SUPABASE_JWT_SECRET` (Worker only, never expose in frontend)
-
-```bash
-cp .env.example .env
-cp .dev.vars.example .dev.vars
-# Fill in values, then:
-corepack yarn dev
-```
+   - JWT Secret → `SUPABASE_JWT_SECRET` (Worker only; never expose in the frontend)
 
 Production Worker secret:
 
@@ -38,21 +68,7 @@ Production Worker secret:
 wrangler secret put SUPABASE_JWT_SECRET --config wrangler.worker.toml
 ```
 
-Cloudflare Pages: add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as build environment variables.
-
-## Local Development
-
-```bash
-yarn install
-yarn dev
-corepack yarn dev
-```
-
-Open `http://localhost:5173` in your browser (Vite + Cloudflare plugin starts the Worker alongside the app; `/api` behaves the same as production):
-
-1. **Sign in** or **create an account** on the auth screen
-2. Click the **gear** icon to open Settings, enter your API Key, fetch models, and select one
-3. Use the bottom-right **AI Assistant** panel; Enter to send, Shift+Enter for a new line
+Cloudflare Pages build variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
 
 ## Project Structure
 
