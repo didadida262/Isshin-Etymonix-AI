@@ -32,7 +32,7 @@ export function computeCardFocusTransform(cardEl: HTMLElement): CardFocusTransfo
   const targetX = vw / 2;
   const targetY = (safeTop + safeBottom) / 2;
   const maxW = Math.min(availW * 0.78, 420);
-  const maxH = Math.min(availH * 0.62, maxW * (3 / 4));
+  const maxH = Math.min(availH * 0.72, maxW * (3 / 2));
   const scaleW = maxW / rect.width;
   const scaleH = maxH / rect.height;
   const scale = Math.max(

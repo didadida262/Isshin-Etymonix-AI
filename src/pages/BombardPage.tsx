@@ -5,6 +5,7 @@ import { BombardCardAuras } from '../components/BombardCardAuras';
 import { FinaleOverlay } from '../components/FinaleOverlay';
 import { SettingsButton } from '../components/SettingsButton';
 import { UserMenu } from '../components/UserMenu';
+import brainLogoUrl from '../assets/brain.png';
 import logoUrl from '../assets/logo_Isshin-Etymonix-AI.png';
 import { MAX_ROUNDS, useGameSession } from '../context/GameSessionContext';
 import { useAppLanguage } from '../context/AppLanguageContext';
@@ -22,20 +23,64 @@ import {
 import { cn } from '../lib/cn';
 import { loadUnitData, type RootGroup, type WordItem } from '../lib/loadUnitData';
 
-/* ── 统一背面设计 token ── */
-const BACK_CLASSES = {
-  outer:
-    'rounded-xl border border-cyan-500/20 bg-gradient-to-br from-zinc-900 via-black to-zinc-900 shadow-[0_0_40px_-10px_rgba(6,182,212,0.3),inset_0_0_60px_-20px_rgba(6,182,212,0.15)]',
-  pattern: 'bg-[radial-gradient(circle_2px_at_center,rgba(6,182,212,0.15)_1px,transparent_1px)] bg-[length:16px_16px]',
-  emblem: 'text-cyan-400/80',
-  logoContainer: 'absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-950/40 to-zinc-900/60 backdrop-blur-sm border border-cyan-500/20 shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]',
-  logoIcon: 'text-cyan-400/80',
-  glow: 'absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_50%,rgba(6,182,212,0.12),transparent_70%)]',
-};
+/* ── 卡牌：竖版 2:3，卡背参考图二 ── */
+const CARD_ASPECT = 'aspect-[2/3]';
 
-/** 正面暗角，与背面 HUD 区分且不加纹理字 */
-const FRONT_FACE_VIGNETTE =
-  'bg-[radial-gradient(ellipse_85%_75%_at_50%_42%,transparent_35%,rgba(0,0,0,0.5)_100%)]';
+const CARD_BASE =
+  'relative w-full overflow-hidden rounded-xl border border-cyan-400/35 bg-[#050a0f] shadow-[0_0_18px_rgba(0,242,255,0.12)]';
+
+const CARD_DOT_GRID =
+  'absolute inset-0 bg-[radial-gradient(circle_1px_at_center,rgba(26,58,82,0.9)_1px,transparent_1px)] bg-[length:18px_18px]';
+
+const CARD_BRACKET =
+  'pointer-events-none absolute h-4 w-4 border-cyan-400/80 shadow-[0_0_8px_rgba(0,242,255,0.5)]';
+
+function cardHighlightClass(highlighted: boolean, hovered?: boolean) {
+  if (highlighted) {
+    return 'border-cyan-400/60 shadow-[0_0_28px_rgba(0,242,255,0.38)]';
+  }
+  if (hovered) {
+    return 'group-hover/card:border-cyan-400/50 group-hover/card:shadow-[0_0_24px_rgba(0,242,255,0.28)]';
+  }
+  return '';
+}
+
+function CardFrame({
+  highlighted,
+  showHover,
+  children,
+  className,
+  style,
+  fill,
+}: {
+  highlighted: boolean;
+  showHover?: boolean;
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  /** 翻转正面：铺满容器，不再单独设 aspect */
+  fill?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        CARD_BASE,
+        !fill && CARD_ASPECT,
+        'transition-[border-color,box-shadow] duration-300',
+        cardHighlightClass(highlighted, showHover),
+        className
+      )}
+      style={style}
+    >
+      <div className={CARD_DOT_GRID} aria-hidden />
+      <div className={cn(CARD_BRACKET, 'left-3 top-3 border-l-2 border-t-2')} aria-hidden />
+      <div className={cn(CARD_BRACKET, 'right-3 top-3 border-r-2 border-t-2')} aria-hidden />
+      <div className={cn(CARD_BRACKET, 'bottom-3 left-3 border-b-2 border-l-2')} aria-hidden />
+      <div className={cn(CARD_BRACKET, 'bottom-3 right-3 border-b-2 border-r-2')} aria-hidden />
+      {children}
+    </div>
+  );
+}
 
 /* ── 常量 ── */
 const FLIP_OPEN_MS = 480;
@@ -713,7 +758,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
 }
 
 /* ════════════════════════════════════════
-   翻转卡牌组件（优化版）
+   翻转卡牌
    ════════════════════════════════════════ */
 
 interface FlipCardProps {
@@ -790,109 +835,38 @@ const FlipCard = React.memo(
           ease: [0.4, 0, 0.2, 1],
         }}
       >
-        {/* ──── 背面（统一设计） ──── */}
-        <div
-          className={cn(
-            BACK_CLASSES.outer,
-            'relative flex aspect-[4/3] items-center justify-center overflow-hidden',
-            'transition-[border-color,box-shadow] duration-300',
-            !isFocused &&
-              'group-hover/card:border-cyan-400/35 group-hover/card:shadow-[0_0_52px_-8px_rgba(6,182,212,0.42),inset_0_0_60px_-20px_rgba(6,182,212,0.2)]',
-            highlighted &&
-              'border-cyan-400/45 shadow-[0_0_56px_-6px_rgba(6,182,212,0.55),inset_0_0_60px_-18px_rgba(6,182,212,0.22)]'
-          )}
+        {/* 背面：点阵底 + 角标 + brain logo */}
+        <CardFrame
+          highlighted={highlighted}
+          showHover={!isFocused}
+          className="flex items-center justify-center"
           style={{ backfaceVisibility: 'hidden' }}
         >
-          {!reduceMotion && !isFocused && (
-            <div
-              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover/card:opacity-100 group-hover/card:animate-sheen-sweep-once bg-[linear-gradient(105deg,transparent_35%,rgba(34,211,238,0.12)_50%,transparent_65%)]"
-              aria-hidden
-            />
-          )}
-          {/* 动态光晕背景 - 性能优化：仅在高亮时启用 */}
-          {!reduceMotion && <div className={BACK_CLASSES.glow} aria-hidden />}
-          
-          {/* 纹理底 - 性能优化：简化 */}
-          {!reduceMotion && <div className={`absolute inset-0 ${BACK_CLASSES.pattern}`} aria-hidden />}
+          <img
+            src={brainLogoUrl}
+            alt=""
+            className="relative z-10 h-[78%] w-[78%] object-contain drop-shadow-[0_0_24px_rgba(0,229,255,0.35)]"
+            draggable={false}
+          />
+        </CardFrame>
 
-          {/* 中心光环装饰 - 所有卡牌都显示 */}
-          {!reduceMotion && (
-            <div className="relative" aria-hidden>
-              {/* 外圈光环 */}
-              <div className="absolute -inset-10 rounded-full border border-cyan-500/10 animate-pulse" />
-              <div className="absolute -inset-8 rounded-full border border-cyan-500/15" />
-              <div className="absolute -inset-6 rounded-full border border-cyan-500/20 animate-glow" />
-            </div>
-          )}
-
-          {/* 四角装饰 - 性能优化：简化 */}
-          {!reduceMotion && (
-            <>
-              <div className="absolute left-4 top-4 h-4 w-4 border-l-2 border-t-2 border-cyan-500/40 transition-colors duration-300 group-hover/card:border-cyan-300/70" aria-hidden />
-              <div className="absolute right-4 top-4 h-4 w-4 border-r-2 border-t-2 border-cyan-500/40 transition-colors duration-300 group-hover/card:border-cyan-300/70" aria-hidden />
-              <div className="absolute bottom-4 left-4 h-4 w-4 border-b-2 border-l-2 border-cyan-500/40 transition-colors duration-300 group-hover/card:border-cyan-300/70" aria-hidden />
-              <div className="absolute bottom-4 right-4 h-4 w-4 border-b-2 border-r-2 border-cyan-500/40 transition-colors duration-300 group-hover/card:border-cyan-300/70" aria-hidden />
-            </>
-          )}
-          
-          {/* 扫描线动画 - 性能优化：仅在高亮时显示 */}
-          {highlighted && !reduceMotion && (
-            <>
-              <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-scan" aria-hidden />
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent animate-scan" aria-hidden />
-            </>
-          )}
-        </div>
-
-        {/* ──── 正面：词典页纹理（非背面 HUD） ──── */}
-        <div
-          className={cn(
-            'absolute inset-0 aspect-[4/3] overflow-hidden rounded-xl border',
-            'bg-gradient-to-b from-indigo-950/90 via-zinc-950 to-black',
-            highlighted
-              ? 'border-indigo-300/55 shadow-[0_0_32px_-8px_rgba(129,140,248,0.55)]'
-              : 'border-indigo-500/25 shadow-[0_0_20px_-12px_rgba(99,102,241,0.35)]'
-          )}
+        {/* 正面：单词 + 释义 */}
+        <CardFrame
+          highlighted={highlighted}
+          fill
+          className="absolute inset-0"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          {!reduceMotion && (
-            <>
-              <div className={`absolute inset-0 ${FRONT_FACE_VIGNETTE}`} aria-hidden />
-              <div
-                className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-indigo-400/45 to-transparent"
-                aria-hidden
-              />
-              <div
-                className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-amber-500/25 to-transparent"
-                aria-hidden
-              />
-              <div
-                className="absolute inset-y-6 left-3 w-px bg-gradient-to-b from-transparent via-indigo-300/20 to-transparent"
-                aria-hidden
-              />
-              <div
-                className="absolute inset-y-6 right-3 w-px bg-gradient-to-b from-transparent via-indigo-300/20 to-transparent"
-                aria-hidden
-              />
-              {highlighted && (
-                <div
-                  className="absolute inset-2 rounded-lg ring-1 ring-indigo-300/30"
-                  aria-hidden
-                />
-              )}
-            </>
-          )}
-
-          <div className="relative z-10 grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] px-3 pb-5 pt-5 md:px-4 md:pb-6 md:pt-6">
-            <div className="w-full max-w-[86%] justify-self-center text-center">
-              <span className="font-display text-base font-bold break-words text-white drop-shadow-[0_0_10px_rgba(129,140,248,0.35)] md:text-lg">
+          <div className="relative z-10 flex h-full min-h-0 flex-col px-4 pb-6 pt-7">
+            <div className="shrink-0 text-center">
+              <span className="font-display text-lg font-bold break-words text-white drop-shadow-[0_0_10px_rgba(0,242,255,0.3)] md:text-xl">
                 {word.word}
               </span>
-              <div className="mx-auto mt-1.5 h-px w-14 bg-gradient-to-r from-transparent via-indigo-400/50 to-transparent" />
+              <div className="mx-auto mt-2 h-px w-16 bg-gradient-to-r from-transparent via-amber-400/65 to-transparent" />
             </div>
 
             <motion.div
-              className="mt-3 flex min-h-0 w-full max-w-[86%] flex-col justify-self-center md:mt-4"
+              className="mt-4 flex min-h-0 flex-1 flex-col"
               initial={{ opacity: 0 }}
               animate={showDef ? { opacity: 1 } : { opacity: 0 }}
               transition={{ duration: immediateDefinition ? 0.2 : 0.5, ease: 'easeOut' }}
@@ -904,13 +878,13 @@ const FlipCard = React.memo(
                 )}
                 title={word.definition}
               >
-                <p className="pb-4 text-center text-xs leading-relaxed break-words text-cyan-100 drop-shadow-[0_0_10px_rgba(103,232,249,0.28)] md:pb-5 md:text-sm">
+                <p className="pb-2 text-center text-sm leading-relaxed break-words text-cyan-100/95 md:text-base">
                   {word.definition}
                 </p>
               </div>
             </motion.div>
           </div>
-        </div>
+        </CardFrame>
       </motion.div>
     </motion.div>
   );
