@@ -197,7 +197,7 @@ export function AuthPage() {
       transition={{ duration: 0.35 }}
     >
       <div className="mb-8 flex justify-center">
-        <SiteBrand title={t.brand} logoSize={48} />
+        <SiteBrand title={t.brand} logoSize={52} />
       </div>
 
       <AuthThemeCard className="p-6 sm:p-8">

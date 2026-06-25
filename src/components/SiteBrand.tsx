@@ -1,4 +1,4 @@
-import logoUrl from '../assets/logo.png';
+import logoUrl from '../assets/logo_Isshin-Etymonix-AI.png';
 import { cn } from '../lib/cn';
 
 interface SiteBrandProps {
@@ -7,6 +7,8 @@ interface SiteBrandProps {
   compact?: boolean;
   className?: string;
   logoSize?: number;
+  /** 覆盖 logo 尺寸类名，设置后忽略 logoSize */
+  logoClassName?: string;
   variant?: 'dark' | 'light';
 }
 
@@ -14,7 +16,8 @@ export function SiteBrand({
   title,
   compact = false,
   className,
-  logoSize = 40,
+  logoSize = 48,
+  logoClassName,
   variant = 'dark',
 }: SiteBrandProps) {
   const light = variant === 'light';
@@ -23,16 +26,15 @@ export function SiteBrand({
     <div className={cn('flex min-w-0 items-center gap-2 sm:gap-3', className)}>
       <img
         src={logoUrl}
-        alt="Isshin Etyomnix AI"
-        width={logoSize}
-        height={logoSize}
+        alt="Isshin Etymonix AI"
         className={cn(
-          '-ml-0.5 shrink-0 rounded-lg object-contain',
+          'shrink-0 rounded-lg object-contain',
+          logoClassName,
           light
             ? 'border border-zinc-200/90 bg-white/80 p-1 shadow-sm'
             : 'border border-white/15 bg-white shadow-sm shadow-black/25'
         )}
-        style={{ width: logoSize, height: logoSize }}
+        style={logoClassName ? undefined : { height: logoSize, width: 'auto' }}
       />
       <h1
         className={cn(

@@ -124,7 +124,7 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
       <AmbientBackdrop />
 
       <header className="relative z-20 flex shrink-0 items-center justify-between border-b border-white/[0.08] bg-zinc-950/20 px-4 py-3 md:px-6 md:py-4 backdrop-blur-md">
-        <SiteBrand title={t.title} />
+        <SiteBrand title={t.title} logoClassName="h-11 w-auto md:h-12" />
 
         <div className="flex items-center gap-2">
           <UserMenu />
