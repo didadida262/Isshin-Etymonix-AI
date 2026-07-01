@@ -1,7 +1,6 @@
 import { faGlobe, faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { BombardBackdrop } from '../components/BombardBackdrop';
-import { BombardCardAuras } from '../components/BombardCardAuras';
 import { FinaleOverlay } from '../components/FinaleOverlay';
 import { SettingsButton } from '../components/SettingsButton';
 import { UserMenu } from '../components/UserMenu';
@@ -26,14 +25,21 @@ import { loadUnitData, type RootGroup, type WordItem } from '../lib/loadUnitData
 /* ── 卡牌：竖版 2:3，卡背参考图二 ── */
 const CARD_ASPECT = 'aspect-[2/3]';
 
+/** 固定宽度 + 比例，避免 grid 列宽撑高卡牌 */
+const CARD_WRAPPER =
+  'relative w-[9rem] shrink-0 overflow-hidden aspect-[2/3] sm:w-[9.75rem] md:w-[10.5rem] lg:w-[11.25rem]';
+
 const CARD_BASE =
   'relative w-full overflow-hidden rounded-xl border border-cyan-400/35 bg-[#050a0f] shadow-[0_0_18px_rgba(0,242,255,0.12)]';
+
+const CARD_FRONT_BASE =
+  'relative w-full overflow-hidden rounded-xl border border-cyan-400/30 bg-[#050a0f] shadow-[0_0_14px_rgba(0,242,255,0.1)]';
 
 const CARD_DOT_GRID =
   'absolute inset-0 bg-[radial-gradient(circle_1px_at_center,rgba(26,58,82,0.9)_1px,transparent_1px)] bg-[length:18px_18px]';
 
-const CARD_BRACKET =
-  'pointer-events-none absolute h-4 w-4 border-cyan-400/80 shadow-[0_0_8px_rgba(0,242,255,0.5)]';
+const CARD_CORNER =
+  'pointer-events-none absolute bg-cyan-400/70 shadow-[0_0_6px_rgba(0,242,255,0.45)]';
 
 function cardHighlightClass(highlighted: boolean, hovered?: boolean) {
   if (highlighted) {
@@ -52,19 +58,22 @@ function CardFrame({
   className,
   style,
   fill,
+  face = 'back',
 }: {
   highlighted: boolean;
   showHover?: boolean;
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  /** 翻转正面：铺满容器，不再单独设 aspect */
+  /** 翻转面：铺满容器，不再单独设 aspect */
   fill?: boolean;
+  /** back 含角标与点阵；front 为渐变光晕面 */
+  face?: 'back' | 'front';
 }) {
   return (
     <div
       className={cn(
-        CARD_BASE,
+        face === 'front' ? CARD_FRONT_BASE : CARD_BASE,
         !fill && CARD_ASPECT,
         'transition-[border-color,box-shadow] duration-300',
         cardHighlightClass(highlighted, showHover),
@@ -72,11 +81,24 @@ function CardFrame({
       )}
       style={style}
     >
-      <div className={CARD_DOT_GRID} aria-hidden />
-      <div className={cn(CARD_BRACKET, 'left-3 top-3 border-l-2 border-t-2')} aria-hidden />
-      <div className={cn(CARD_BRACKET, 'right-3 top-3 border-r-2 border-t-2')} aria-hidden />
-      <div className={cn(CARD_BRACKET, 'bottom-3 left-3 border-b-2 border-l-2')} aria-hidden />
-      <div className={cn(CARD_BRACKET, 'bottom-3 right-3 border-b-2 border-r-2')} aria-hidden />
+      {face === 'back' ? (
+        <>
+          <div className={CARD_DOT_GRID} aria-hidden />
+          <div className={cn(CARD_CORNER, 'left-3 top-3 h-3 w-px')} aria-hidden />
+          <div className={cn(CARD_CORNER, 'left-3 top-3 h-px w-3')} aria-hidden />
+          <div className={cn(CARD_CORNER, 'right-3 top-3 h-3 w-px')} aria-hidden />
+          <div className={cn(CARD_CORNER, 'right-3 top-3 h-px w-3')} aria-hidden />
+          <div className={cn(CARD_CORNER, 'bottom-3 left-3 h-3 w-px')} aria-hidden />
+          <div className={cn(CARD_CORNER, 'bottom-3 left-3 h-px w-3')} aria-hidden />
+          <div className={cn(CARD_CORNER, 'bottom-3 right-3 h-3 w-px')} aria-hidden />
+          <div className={cn(CARD_CORNER, 'bottom-3 right-3 h-px w-3')} aria-hidden />
+        </>
+      ) : (
+        <div
+          className="absolute inset-0 bg-[radial-gradient(ellipse_75%_40%_at_50%_0%,rgba(6,182,212,0.07),transparent_62%)]"
+          aria-hidden
+        />
+      )}
       {children}
     </div>
   );
@@ -490,7 +512,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const showFocusBackdrop = running && !!current && !!activeCardTransform;
 
   return (
-    <div className="relative min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="relative min-h-screen bg-[#020508] text-zinc-100">
       <BombardBackdrop />
 
       {/* ── 顶栏 ── */}
@@ -635,9 +657,8 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
       </header>
 
       {/* ── 主体内容 ── */}
-      <main className="relative z-10 mx-auto max-w-6xl space-y-10 px-3 py-6 pb-10 sm:space-y-12 sm:px-4 sm:py-10 sm:pb-12 md:space-y-14 md:px-6 md:py-12 md:pb-16">
-        <BombardCardAuras />
-        <div className="relative z-10">
+      <main className="relative z-10 mx-auto max-w-6xl px-3 py-4 pb-8 sm:px-4 sm:py-6 sm:pb-10 md:px-6 md:py-8 md:pb-12">
+        <div className="relative z-10 flex flex-col gap-6 sm:gap-8 md:gap-10">
         <AnimatePresence>
           {showFocusBackdrop && (
             <motion.div
@@ -694,8 +715,9 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
               }}
               className="scroll-mt-32 md:scroll-mt-36"
             >
-              {/* 词根标题 */}
-              <div className="mb-4 sm:mb-5 group relative flex items-center gap-2 sm:gap-3">
+              <div className="mx-auto flex w-fit max-w-full flex-col gap-1.5 sm:gap-2">
+              {/* 词根标题 — 紧贴本行卡牌左缘 */}
+              <div className="group relative flex items-center gap-2 sm:gap-3">
                 {/* 词根 - 突出显示 */}
                 <span className="relative flex items-center">
                   {/* 发光背景 */}
@@ -715,8 +737,8 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
                 </span>
               </div>
 
-              {/* 2×2 卡牌网格 */}
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
+              {/* 卡牌行 */}
+              <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 sm:gap-x-7 md:gap-x-9 lg:gap-x-11">
                 {root.words.map((word, wi) => {
                   const isFlipped = testRevealAll || !!flipped[ri]?.[wi];
                   const isCurrent =
@@ -747,6 +769,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
                     />
                   );
                 })}
+              </div>
               </div>
             </div>
           ))
@@ -815,6 +838,7 @@ const FlipCard = React.memo(
       ref={ref}
       className={cn(
         'perspective-[800px] cursor-pointer group/card',
+        CARD_WRAPPER,
         isFocused && 'relative z-[25]'
       )}
       style={{ perspective: '800px', transformOrigin: 'center center' }}
@@ -827,64 +851,72 @@ const FlipCard = React.memo(
       whileHover={isFocused ? undefined : { scale: hoverScale }}
     >
       <motion.div
-        className="relative w-full"
-        style={{ transformStyle: 'preserve-3d' }}
+        className="relative h-full w-full [transform-style:preserve-3d]"
         animate={{ rotateY: flipped ? 180 : 0 }}
         transition={{
           duration: (flipped ? openMs : closeMs) / 1000,
           ease: [0.4, 0, 0.2, 1],
         }}
       >
-        {/* 背面：点阵底 + 角标 + brain logo */}
-        <CardFrame
-          highlighted={highlighted}
-          showHover={!isFocused}
-          className="flex items-center justify-center"
-          style={{ backfaceVisibility: 'hidden' }}
+        {/* 背面 */}
+        <div
+          className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(0deg)_translateZ(1px)]"
+          style={{ WebkitBackfaceVisibility: 'hidden' }}
         >
-          <img
-            src={brainLogoUrl}
-            alt=""
-            className="relative z-10 h-[78%] w-[78%] object-contain drop-shadow-[0_0_24px_rgba(0,229,255,0.35)]"
-            draggable={false}
-          />
-        </CardFrame>
-
-        {/* 正面：单词 + 释义 */}
-        <CardFrame
-          highlighted={highlighted}
-          fill
-          className="absolute inset-0"
-          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-        >
-          <div className="relative z-10 flex h-full min-h-0 flex-col px-4 pb-6 pt-7">
-            <div className="shrink-0 text-center">
-              <span className="font-display text-lg font-bold break-words text-white drop-shadow-[0_0_10px_rgba(0,242,255,0.3)] md:text-xl">
-                {word.word}
-              </span>
-              <div className="mx-auto mt-2 h-px w-16 bg-gradient-to-r from-transparent via-amber-400/65 to-transparent" />
+          <CardFrame
+            face="back"
+            highlighted={highlighted}
+            showHover={!isFocused}
+            fill
+            className="h-full w-full"
+          >
+            <div className="relative z-10 flex h-full w-full items-center justify-center">
+              <img
+                src={brainLogoUrl}
+                alt=""
+                className="h-[78%] w-[78%] object-contain drop-shadow-[0_0_24px_rgba(0,229,255,0.35)]"
+                draggable={false}
+              />
             </div>
+          </CardFrame>
+        </div>
 
-            <motion.div
-              className="mt-4 flex min-h-0 flex-1 flex-col"
-              initial={{ opacity: 0 }}
-              animate={showDef ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: immediateDefinition ? 0.2 : 0.5, ease: 'easeOut' }}
-            >
-              <div
-                className={cn(
-                  'scrollbar-chat min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-1',
-                  !showDef && 'pointer-events-none'
-                )}
-                title={word.definition}
-              >
-                <p className="pb-2 text-center text-sm leading-relaxed break-words text-cyan-100/95 md:text-base">
-                  {word.definition}
-                </p>
+        {/* 正面：独立 3D 层，与背面对齐 */}
+        <div
+          className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)_translateZ(1px)]"
+          style={{ WebkitBackfaceVisibility: 'hidden' }}
+        >
+          <CardFrame face="front" highlighted={highlighted} fill className="h-full w-full">
+            <div className="relative z-10 flex h-full min-h-0 flex-col px-3.5 pb-4 pt-4 sm:px-4 sm:pb-5 sm:pt-5">
+              <div className="flex min-h-[2.75rem] shrink-0 items-start text-left sm:min-h-[3rem]">
+                <span className="font-display text-sm font-semibold leading-snug break-words text-cyan-50 sm:text-base">
+                  {word.word}
+                </span>
               </div>
-            </motion.div>
-          </div>
-        </CardFrame>
+
+              <div className="mt-1 h-px w-full shrink-0 bg-cyan-400/20" aria-hidden />
+
+              <motion.div
+                className="mt-2.5 min-h-[4.25rem] w-full shrink-0 sm:mt-3 sm:min-h-[4.75rem]"
+                initial={{ opacity: 0 }}
+                animate={showDef ? { opacity: 1 } : { opacity: 0 }}
+                transition={{ duration: immediateDefinition ? 0.2 : 0.4, ease: 'easeOut' }}
+              >
+                <div
+                  className={cn(
+                    'scrollbar-chat h-full max-h-[4.75rem] overflow-x-hidden overflow-y-auto overscroll-contain sm:max-h-[5.25rem]',
+                    !showDef && 'pointer-events-none'
+                  )}
+                  title={word.definition}
+                >
+                  <p className="text-left text-[11px] leading-[1.55] break-words text-zinc-400 sm:text-xs">
+                    {word.definition}
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          </CardFrame>
+        </div>
       </motion.div>
     </motion.div>
   );

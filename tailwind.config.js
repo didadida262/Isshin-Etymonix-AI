@@ -28,6 +28,10 @@ export default {
         'sheen-sweep-once': 'sheen-sweep-once 0.72s cubic-bezier(0.33, 1, 0.68, 1) 1 both',
         /** 慢移、小幅，减轻网格眩晕感 */
         'grid-drift': 'grid-drift 180s linear infinite',
+        'bombard-scan': 'bombard-scan 5s ease-in-out infinite',
+        'bombard-scan-slow': 'bombard-scan 8s ease-in-out infinite',
+        'bombard-edge-breathe': 'bombard-edge-breathe 6s ease-in-out infinite',
+        'bombard-edge-breathe-reverse': 'bombard-edge-breathe 7s ease-in-out infinite reverse',
         'orb-1': 'orb-1 48s ease-in-out infinite',
         'orb-2': 'orb-2 56s ease-in-out infinite',
         'orb-3': 'orb-3 64s ease-in-out infinite',
@@ -56,6 +60,16 @@ export default {
         'grid-drift': {
           '0%': { backgroundPosition: '0 0, 0 0' },
           '100%': { backgroundPosition: '24px 24px, 24px 24px' },
+        },
+        'bombard-scan': {
+          '0%': { transform: 'translateY(-120vh)', opacity: '0' },
+          '8%': { opacity: '1' },
+          '92%': { opacity: '1' },
+          '100%': { transform: 'translateY(120vh)', opacity: '0' },
+        },
+        'bombard-edge-breathe': {
+          '0%, 100%': { opacity: '0.55' },
+          '50%': { opacity: '1' },
         },
         /** 多段缓移，避免 50% 硬折返带来的晃动感 */
         'orb-1': {
