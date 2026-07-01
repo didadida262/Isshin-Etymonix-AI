@@ -1,9 +1,11 @@
-import { faGlobe, faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
+import { faGear, faGlobe, faPlay, faRightFromBracket, faStop } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { BombardBackdrop } from '../components/BombardBackdrop';
 import { FinaleOverlay } from '../components/FinaleOverlay';
+import { MobileLogoMenu } from '../components/MobileLogoMenu';
 import { SettingsButton } from '../components/SettingsButton';
 import { UserMenu } from '../components/UserMenu';
+import { useAuth } from '../context/AuthContext';
 import brainLogoUrl from '../assets/brain.png';
 import logoUrl from '../assets/logo_Isshin-Etymonix-AI.png';
 import { MAX_ROUNDS, useGameSession } from '../context/GameSessionContext';
@@ -149,6 +151,10 @@ const BOMBARD_UI = {
     stopShort: '停止',
     loading: '加载中...',
     loadingShort: '…',
+    menuLabel: '菜单',
+    settings: '设置',
+    language: '切换语言',
+    signOut: '退出登录',
   },
   en: {
     titleSuffix: 'Root Zhan',
@@ -162,6 +168,10 @@ const BOMBARD_UI = {
     stopShort: 'Stop',
     loading: 'Loading…',
     loadingShort: '…',
+    menuLabel: 'Menu',
+    settings: 'Settings',
+    language: 'Language',
+    signOut: 'Sign out',
   },
 } as const;
 
@@ -175,6 +185,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const reduceMotion = useReducedMotion();
   const { openSettings } = useSettingsModal();
   const { lang, toggleLang } = useAppLanguage();
+  const { signOut } = useAuth();
   const ui = BOMBARD_UI[lang];
   const game = useGameSession();
   const roundRef = useRef(0);
@@ -523,6 +534,57 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const countdownUrgency = countdownWarning ? 11 - countdown : 0;
   const showFocusBackdrop = running && !!current && !!activeCardTransform;
 
+  const mobileMenuItems = useMemo(
+    () => [
+      {
+        id: 'reveal',
+        label: testRevealAll ? ui.restore : ui.revealAll,
+        onClick: toggleTestRevealAll,
+        disabled: loading || cardsCount === 0,
+      },
+      {
+        id: 'lang',
+        label: ui.language,
+        icon: faGlobe,
+        onClick: toggleLang,
+      },
+      {
+        id: 'settings',
+        label: ui.settings,
+        icon: faGear,
+        onClick: openSettings,
+      },
+      {
+        id: 'back',
+        label: ui.back,
+        onClick: onBack,
+      },
+      {
+        id: 'signout',
+        label: ui.signOut,
+        icon: faRightFromBracket,
+        onClick: () => void signOut(),
+        variant: 'danger' as const,
+      },
+    ],
+    [
+      cardsCount,
+      loading,
+      onBack,
+      openSettings,
+      signOut,
+      testRevealAll,
+      toggleLang,
+      toggleTestRevealAll,
+      ui.back,
+      ui.language,
+      ui.revealAll,
+      ui.restore,
+      ui.settings,
+      ui.signOut,
+    ]
+  );
+
   return (
     <div className="relative min-h-screen bg-[#020508] text-zinc-100">
       <BombardBackdrop />
@@ -530,19 +592,29 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
       {/* ── 顶栏 ── */}
       <FinaleOverlay />
 
-      <header className="relative z-40 sticky top-0 grid min-h-[3.5rem] grid-cols-[1fr_auto_1fr] items-center border-b border-white/[0.08] bg-zinc-950/70 px-3 py-3 backdrop-blur-xl md:min-h-[4rem] md:px-6 md:py-3.5">
-          <div className="flex min-w-0 items-center justify-self-start gap-2.5 md:gap-3">
-            <img src={logoUrl} alt="" className="hidden h-11 shrink-0 rounded-lg border border-white/15 bg-white object-contain shadow-sm shadow-black/20 md:h-12 sm:block" />
-            <img src={logoUrl} alt="" className="h-10 shrink-0 rounded-lg border border-white/15 bg-white object-contain shadow-sm shadow-black/20 sm:hidden" />
-            <h1 className="min-w-0 font-display text-sm font-semibold tracking-tight text-white md:text-lg">
-              <span className="hidden md:inline">
-                Unit {unitId} · {ui.titleSuffix}
-              </span>
-              <span className="md:hidden">Unit {unitId}</span>
+      <header className="relative z-40 sticky top-0 flex min-h-[3.5rem] items-center border-b border-white/[0.08] bg-zinc-950/70 px-3 py-3 backdrop-blur-xl md:grid md:min-h-[4rem] md:grid-cols-[1fr_auto_1fr] md:px-6 md:py-3.5">
+          {/* 移动端：左侧 Logo + 标题 */}
+          <div className="flex min-w-0 shrink-0 items-center gap-2 md:hidden">
+            <img
+              src={logoUrl}
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-lg border border-white/15 bg-white object-contain shadow-sm shadow-black/20"
+            />
+            <h1 className="truncate font-display text-sm font-semibold tracking-tight text-white">
+              Unit {unitId}
             </h1>
           </div>
 
-          <div className="flex items-center justify-center gap-2.5 md:gap-3">
+          {/* 桌面端：品牌 + 标题 */}
+          <div className="hidden min-w-0 items-center justify-self-start gap-2.5 md:col-start-1 md:flex md:gap-3">
+            <img src={logoUrl} alt="" className="h-12 shrink-0 rounded-lg border border-white/15 bg-white object-contain shadow-sm shadow-black/20" />
+            <h1 className="min-w-0 font-display text-lg font-semibold tracking-tight text-white">
+              Unit {unitId} · {ui.titleSuffix}
+            </h1>
+          </div>
+
+          {/* 开始按钮：移动端绝对居中，桌面端网格居中 */}
+          <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2.5 md:pointer-events-auto md:static md:translate-x-0 md:translate-y-0 md:col-start-2 md:justify-self-center md:gap-3">
             <div
               className={cn(
                 'relative flex h-11 shrink-0 items-center justify-center overflow-visible transition-[width] duration-200 md:h-12',
@@ -605,7 +677,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
               onClick={toggleRunning}
               disabled={loading || cardsCount === 0}
               className={cn(
-                'inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3.5',
+                'pointer-events-auto inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3.5',
                 'text-sm font-semibold tracking-wide transition-all md:h-12 md:min-w-[7.5rem] md:gap-2 md:px-6 md:text-base',
                 running ? STOP_BTN_CLASSES : 'border-emerald-400/50 bg-gradient-to-b from-emerald-800/70 to-emerald-950/90 text-emerald-50 shadow-[0_0_28px_-6px_rgba(52,211,153,0.5)] hover:from-emerald-700/75 hover:to-emerald-900/90',
                 !running && 'min-w-[6rem] md:min-w-[9.5rem]',
@@ -617,16 +689,24 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
                 icon={running ? faStop : faPlay}
                 className="h-3.5 w-3.5 md:h-4 md:w-4"
               />
-              <span className="hidden sm:inline">
+              <span className="hidden sm:inline md:inline">
                 {loading ? ui.loading : running ? ui.stop : ui.start}
               </span>
-              <span className="sm:hidden">
+              <span className="inline sm:hidden md:hidden">
                 {loading ? ui.loadingShort : running ? ui.stopShort : ui.startShort}
               </span>
             </button>
           </div>
 
-          <div className="flex min-w-0 items-center justify-self-end gap-2.5 md:gap-3.5">
+          {/* 移动端：最右侧操作菜单 */}
+          <div className="relative z-10 ml-auto shrink-0 md:hidden">
+            {!running && (
+              <MobileLogoMenu menuLabel={ui.menuLabel} items={mobileMenuItems} />
+            )}
+          </div>
+
+          {/* 桌面端：右侧操作区 */}
+          <div className="hidden min-w-0 items-center justify-self-end gap-2.5 md:col-start-3 md:flex md:gap-3.5">
           {!running && (
           <>
             <button
