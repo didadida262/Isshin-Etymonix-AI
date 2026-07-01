@@ -297,7 +297,7 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
         if (el) {
           el.scrollIntoView({
             behavior: reduceMotion ? 'auto' : 'smooth',
-            block: 'center',
+            block: 'nearest',
             inline: 'nearest',
           });
           setTimeout(resolve, reduceMotion ? 60 : CARD_SCROLL_SETTLE_MS);
@@ -321,20 +321,27 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const centerCardInView = useCallback(
     (card: FlatCard) =>
       new Promise<void>((resolve) => {
-        const key = cardRefKey(card.rootIdx, card.wordIdx);
-        const el = cardRefs.current.get(key);
-        if (!el) {
-          resolve();
-          return;
-        }
-        const { x, y, scale } = computeCardFocusTransform(el);
-        if (reduceMotion) {
+        const apply = () => {
+          const key = cardRefKey(card.rootIdx, card.wordIdx);
+          const el = cardRefs.current.get(key);
+          if (!el) return false;
+          const { x, y, scale } = computeCardFocusTransform(el);
           setActiveCardTransform({ key, x, y, scale });
+          return true;
+        };
+
+        if (!apply()) {
           resolve();
           return;
         }
-        setActiveCardTransform({ key, x, y, scale });
-        setTimeout(resolve, CARD_CENTER_MOVE_MS);
+        if (reduceMotion) {
+          resolve();
+          return;
+        }
+        requestAnimationFrame(() => {
+          apply();
+          setTimeout(resolve, CARD_CENTER_MOVE_MS);
+        });
       }),
     [reduceMotion]
   );
@@ -839,7 +846,7 @@ const FlipCard = React.memo(
       className={cn(
         'perspective-[800px] cursor-pointer group/card',
         CARD_WRAPPER,
-        isFocused && 'relative z-[25]'
+        isFocused && 'relative z-[45]'
       )}
       style={{ perspective: '800px', transformOrigin: 'center center' }}
       animate={{
