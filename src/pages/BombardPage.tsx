@@ -21,6 +21,7 @@ import {
 } from '../lib/cardFocusLayout';
 import { cn } from '../lib/cn';
 import { loadUnitData, type RootGroup, type WordItem } from '../lib/loadUnitData';
+import { preloadBrainLogo } from '../lib/preloadBrainLogo';
 
 /* ── 卡牌：竖版 2:3，卡背参考图二 ── */
 const CARD_ASPECT = 'aspect-[2/3]';
@@ -183,6 +184,10 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
   const [unitData, setUnitData] = useState<RootGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    preloadBrainLogo();
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -881,6 +886,7 @@ const FlipCard = React.memo(
               <img
                 src={brainLogoUrl}
                 alt=""
+                decoding="async"
                 className="h-[78%] w-[78%] object-contain drop-shadow-[0_0_24px_rgba(0,229,255,0.35)]"
                 draggable={false}
               />

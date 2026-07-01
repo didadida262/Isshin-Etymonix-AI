@@ -12,6 +12,7 @@ import { getAvailableRootUnits } from '../data/rootUnits';
 import type { RootUnit } from '../types/rootUnit';
 import { useAppLanguage } from '../context/AppLanguageContext';
 import { cn } from '../lib/cn';
+import { preloadBrainLogo } from '../lib/preloadBrainLogo';
 
 const GRID_COLS = 4;
 
@@ -75,6 +76,10 @@ export function RootBombardPage({ onStartBombard }: RootBombardPageProps) {
     null,
   );
   const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    preloadBrainLogo();
+  }, []);
   
   // 动态加载可用单元
   const [availableUnits, setAvailableUnits] = useState<RootUnit[]>([]);

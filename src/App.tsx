@@ -8,6 +8,7 @@ import { SettingsModalProvider } from './context/SettingsModalContext';
 import { AuthPage } from './pages/AuthPage';
 import { BombardPage } from './pages/BombardPage';
 import { RootBombardPage } from './pages/RootBombardPage';
+import { preloadBrainLogo } from './lib/preloadBrainLogo';
 
 function getPageFromHash(): 'home' | 'bombard' {
   const hash = window.location.hash.replace('#', '');
@@ -45,6 +46,10 @@ export default function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  useEffect(() => {
+    if (session) preloadBrainLogo();
+  }, [session]);
 
   if (loading) {
     return <AuthLoadingScreen />;
