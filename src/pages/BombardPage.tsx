@@ -829,8 +829,8 @@ export function BombardPage({ onBack, unitId }: { onBack: () => void; unitId: nu
                 </span>
               </div>
 
-              {/* 卡牌行 */}
-              <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 sm:gap-x-7 md:gap-x-9 lg:gap-x-11">
+              {/* 卡牌行：固定每行最多 4 张，避免 8 张词根（如 MYTHOLOGY）在宽屏下排成 5+3 */}
+              <div className="grid grid-cols-2 justify-items-center gap-x-6 gap-y-3 sm:grid-cols-3 sm:gap-x-7 md:grid-cols-4 md:gap-x-9 lg:gap-x-11">
                 {root.words.map((word, wi) => {
                   const isFlipped = testRevealAll || !!flipped[ri]?.[wi];
                   const isCurrent =

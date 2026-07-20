@@ -111,121 +111,114 @@
     animation: scan 3s ease-in-out infinite;
   }
 
-  @keyframes bombard-data-fall {
-    0% {
-      background-position:
-        12% 0,
-        38% -80px,
-        67% -40px,
-        88% -120px;
-    }
-    100% {
-      background-position:
-        12% 320px,
-        38% 240px,
-        67% 280px,
-        88% 200px;
-    }
+  /* ── 轰炸页 Web3 暗色氛围 ── */
+
+  .bombard-aurora {
+    border-radius: 50%;
+    filter: blur(80px);
+    will-change: transform, opacity;
   }
 
-  .bombard-data-streams {
-    background-image:
-      linear-gradient(180deg, transparent 0%, rgba(34, 211, 238, 0.14) 48%, transparent 100%),
-      linear-gradient(180deg, transparent 0%, rgba(167, 139, 250, 0.1) 52%, transparent 100%),
-      linear-gradient(180deg, transparent 0%, rgba(34, 211, 238, 0.1) 50%, transparent 100%),
-      linear-gradient(180deg, transparent 0%, rgba(34, 211, 238, 0.08) 46%, transparent 100%);
-    background-size:
-      1px 140px,
-      1px 100px,
-      1px 180px,
-      1px 120px;
-    background-repeat: repeat-y;
-    animation: bombard-data-fall 10s linear infinite;
-    mask-image: radial-gradient(ellipse 92% 72% at 50% 48%, black 8%, transparent 76%);
+  .bombard-aurora--a {
+    background: radial-gradient(
+      circle,
+      rgba(34, 211, 238, 0.22) 0%,
+      rgba(56, 189, 248, 0.08) 42%,
+      transparent 70%
+    );
   }
 
-  /* ── 轰炸页霓虹网格背景（单层线格，避免叠线） ── */
-
-  .bombard-grid-primary {
-    --grid-size: 32px;
-    --grid-line: rgba(34, 211, 238, 0.12);
-    background-image:
-      linear-gradient(to right, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px);
-    background-size: var(--grid-size) var(--grid-size);
-    background-position: 0 0;
+  .bombard-aurora--b {
+    background: radial-gradient(
+      circle,
+      rgba(139, 92, 246, 0.2) 0%,
+      rgba(99, 102, 241, 0.08) 45%,
+      transparent 70%
+    );
   }
 
-  .bombard-grid-primary--animated {
-    animation: bombard-grid-drift 24s linear infinite;
+  .bombard-aurora--c {
+    background: radial-gradient(
+      circle,
+      rgba(52, 211, 153, 0.12) 0%,
+      rgba(6, 182, 212, 0.06) 40%,
+      transparent 68%
+    );
   }
 
-  @keyframes bombard-grid-drift {
-    0% {
-      background-position: 0 0;
-    }
-    100% {
-      background-position: 32px 32px;
-    }
+  .bombard-aurora--drift-a {
+    animation: bombard-aurora-drift-a 22s ease-in-out infinite;
   }
 
-  @keyframes bombard-grid-node-pulse {
+  .bombard-aurora--drift-b {
+    animation: bombard-aurora-drift-b 28s ease-in-out infinite;
+  }
+
+  .bombard-aurora--drift-c {
+    animation: bombard-aurora-drift-c 26s ease-in-out infinite;
+  }
+
+  @keyframes bombard-aurora-drift-a {
     0%,
     100% {
-      opacity: 0.3;
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 0.75;
     }
     50% {
+      transform: translate3d(12%, 8%, 0) scale(1.12);
+      opacity: 1;
+    }
+  }
+
+  @keyframes bombard-aurora-drift-b {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
       opacity: 0.65;
     }
+    50% {
+      transform: translate3d(-10%, 14%, 0) scale(1.15);
+      opacity: 0.95;
+    }
   }
 
-  @keyframes bombard-grid-scan-band {
-    0% {
-      transform: translate3d(0, -120%, 0);
-      opacity: 0;
-    }
-    8% {
-      opacity: 0.85;
-    }
-    92% {
-      opacity: 0.85;
-    }
+  @keyframes bombard-aurora-drift-c {
+    0%,
     100% {
-      transform: translate3d(0, 520%, 0);
-      opacity: 0;
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translate3d(8%, -10%, 0) scale(1.1);
+      opacity: 0.8;
     }
   }
 
-  .bombard-grid-nodes {
-    --grid-size: 32px;
-    background-image: radial-gradient(
-      circle at 1px 1px,
-      rgba(34, 211, 238, 0.45) 1px,
-      transparent 1px
+  .bombard-beam {
+    background: linear-gradient(
+      115deg,
+      transparent 0%,
+      transparent 38%,
+      rgba(34, 211, 238, 0.03) 46%,
+      rgba(139, 92, 246, 0.045) 50%,
+      rgba(34, 211, 238, 0.03) 54%,
+      transparent 62%,
+      transparent 100%
     );
-    background-size: var(--grid-size) var(--grid-size);
-    background-position: 0 0;
-    animation: bombard-grid-node-pulse 4.5s ease-in-out infinite;
+    background-size: 220% 220%;
+    animation: bombard-beam-sweep 16s ease-in-out infinite;
   }
 
-  .bombard-grid-scan-band {
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      rgba(34, 211, 238, 0.03) 35%,
-      rgba(34, 211, 238, 0.12) 50%,
-      rgba(167, 139, 250, 0.08) 65%,
-      transparent 100%
-    );
-    animation: bombard-grid-scan-band 7s ease-in-out infinite;
-    will-change: transform, opacity;
-    mask-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      black 18%,
-      black 82%,
-      transparent 100%
-    );
+  @keyframes bombard-beam-sweep {
+    0%,
+    100% {
+      background-position: 100% 0%;
+      opacity: 0.35;
+    }
+    50% {
+      background-position: 0% 100%;
+      opacity: 0.85;
+    }
   }
 
   @keyframes glow-pulse {
