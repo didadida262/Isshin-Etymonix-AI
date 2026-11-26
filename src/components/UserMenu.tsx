@@ -72,8 +72,8 @@ function UserAvatar({
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] text-zinc-500">{label}</dt>
-      <dd className="mt-0.5 truncate text-sm text-zinc-200" title={value}>
+      <dt className="text-[10px] text-zinc-500">{label}</dt>
+      <dd className="mt-0.5 truncate text-xs text-zinc-200" title={value}>
         {value}
       </dd>
     </div>
