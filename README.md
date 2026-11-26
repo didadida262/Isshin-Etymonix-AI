@@ -13,13 +13,13 @@ Etymonix (Isshin English Root Zhan) is a web app for word-root memorization. Voc
 | **Root Bombard** | Unit-based card draws with flip-and-recall drills and timed definition reveals |
 | **AI Judge** | Dedicated grading persona with streaming correct/incorrect verdicts and on-demand Q&A |
 | **Session Scoring** | 5 cards per round; end-of-session accuracy with grades (Excellent / Good / Pass / Fail) |
-| **BYOK Models** | Configure your API key and model in Settings to connect any supported LLM |
+| **BYOK Models** | Configure BaseUrl, API key, and model in Settings (Nexus / Agnes / OpenAI-compatible) |
 | **Bilingual UI** | Switch between Chinese and English in one click |
 
 ## Quick Start
 
 1. **Sign up** or **sign in** (Supabase email auth)
-2. Open **Settings** (gear icon) → enter your API key, fetch models, and select one
+2. Open **Settings** (gear icon) → pick a provider preset or enter BaseUrl + API key + model
 3. Pick a Unit on the home screen → **Start Bombard**
 4. Recall the root from each card, submit your explanation in the **Judge panel** (bottom-right); ask follow-up questions anytime
 
@@ -35,9 +35,9 @@ Frontend (React)  →  Supabase Auth (sign in / sign up)
                  →  Agent calls LLM completion endpoint
 ```
 
-- **Frontend**: Supabase email/password auth; API key and model configured in Settings
+- **Frontend**: Supabase email/password auth; BaseUrl, API key, and model configured in Settings
 - **Auth**: Supabase issues JWT; Worker verifies `SUPABASE_JWT_SECRET` on protected routes
-- **Agent (/api)**: Judge persona, streaming chat, grading; internally calls `https://aiplatform.njsrd.com/llm/v1`
+- **Agent (/api)**: Judge persona, streaming chat, grading; calls the user-provided OpenAI-compatible BaseUrl
 - **Deployment**: Cloudflare Worker + static assets (`run_worker_first` handles `/api/*` first)
 
 ## Local Development

@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { JUDGE_SYSTEM } from './persona';
 import { getVisibleStreamingText, stripThinkContent } from './sanitize';
-import { LLM_BASE_URL } from './types';
+import { normalizeLlmBaseUrl } from './types';
 
 const JudgeVerdictSchema = z.object({
   verdict: z.string().describe('只能填写「正确」或「错误」'),
@@ -54,13 +54,13 @@ function llmRequestExtras(model: string): Record<string, unknown> | undefined {
   return { chat_template_kwargs: { enable_thinking: false } };
 }
 
-function createLlm(apiKey: string, model: string) {
+function createLlm(apiKey: string, model: string, baseUrl: string) {
   const extras = llmRequestExtras(model);
   return new ChatOpenAI({
     model,
     apiKey,
     timeout: LLM_TIMEOUT_MS,
-    configuration: { baseURL: LLM_BASE_URL.replace(/\/$/, '') },
+    configuration: { baseURL: normalizeLlmBaseUrl(baseUrl) },
     ...(extras ? { modelKwargs: extras } : {}),
   });
 }
@@ -117,12 +117,13 @@ export async function runJudge(
   rootMeaning: string,
   userExplanation: string,
   apiKey: string,
-  model: string
+  model: string,
+  baseUrl: string
 ): Promise<{ verdict: '正确' | '错误'; feedback: string }> {
   const llm = new ChatOpenAI({
     model,
     apiKey,
-    configuration: { baseURL: LLM_BASE_URL.replace(/\/$/, '') },
+    configuration: { baseURL: normalizeLlmBaseUrl(baseUrl) },
   }).withStructuredOutput(JudgeVerdictSchema);
 
   const result = await llm.invoke([
@@ -143,9 +144,10 @@ export async function* streamJudge(
   rootMeaning: string,
   userExplanation: string,
   apiKey: string,
-  model: string
+  model: string,
+  baseUrl: string
 ): AsyncGenerator<string> {
-  const llm = createLlm(apiKey, model);
+  const llm = createLlm(apiKey, model, baseUrl);
   const messages = [
     new SystemMessage(JUDGE_STREAM_SYSTEM),
     new HumanMessage(

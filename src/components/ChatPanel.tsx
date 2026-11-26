@@ -212,10 +212,11 @@ export function ChatPanel() {
   }, [input, resizeTextarea]);
 
   useEffect(() => {
+    const baseUrl = settings.baseUrl.trim();
     const apiKey = settings.apiKey.trim();
     const model = settings.model.trim();
-    setLlmConnected(Boolean(apiKey && model));
-  }, [settings.apiKey, settings.model]);
+    setLlmConnected(Boolean(baseUrl && apiKey && model));
+  }, [settings.baseUrl, settings.apiKey, settings.model]);
 
   const endDrag = useCallback(
     (clientX: number, clientY: number) => {
@@ -303,7 +304,7 @@ export function ChatPanel() {
     const text = input.trim();
     if (!text || loading) return;
 
-    if (!settings.apiKey.trim() || !settings.model.trim()) {
+    if (!settings.baseUrl.trim() || !settings.apiKey.trim() || !settings.model.trim()) {
       setError(t.settingsRequired);
       return;
     }

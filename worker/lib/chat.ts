@@ -9,7 +9,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { SYSTEM_PROMPT } from './persona';
 import { getVisibleStreamingText, stripThinkContent } from './sanitize';
 import type { ChatMessage } from './types';
-import { LLM_BASE_URL } from './types';
+import { normalizeLlmBaseUrl } from './types';
 
 const LLM_TIMEOUT_MS = 90_000;
 
@@ -32,13 +32,13 @@ function llmRequestExtras(model: string): Record<string, unknown> | undefined {
   return { chat_template_kwargs: { enable_thinking: false } };
 }
 
-function createLlm(apiKey: string, model: string) {
+function createLlm(apiKey: string, model: string, baseUrl: string) {
   const extras = llmRequestExtras(model);
   return new ChatOpenAI({
     model,
     apiKey,
     timeout: LLM_TIMEOUT_MS,
-    configuration: { baseURL: LLM_BASE_URL.replace(/\/$/, '') },
+    configuration: { baseURL: normalizeLlmBaseUrl(baseUrl) },
     ...(extras ? { modelKwargs: extras } : {}),
   });
 }
@@ -78,10 +78,11 @@ export async function runChat(
   message: string,
   history: ChatMessage[],
   apiKey: string,
-  model: string
+  model: string,
+  baseUrl: string
 ): Promise<string> {
   try {
-    const llm = createLlm(apiKey, model);
+    const llm = createLlm(apiKey, model, baseUrl);
     const messages = buildMessages(message, history);
     const response = await llm.invoke(messages);
     const content =
@@ -95,9 +96,13 @@ export async function runChat(
 }
 
 /** 连通性测试：短 prompt，不走完整判官人设 */
-export async function runQuickTest(apiKey: string, model: string): Promise<string> {
+export async function runQuickTest(
+  apiKey: string,
+  model: string,
+  baseUrl: string
+): Promise<string> {
   try {
-    const llm = createLlm(apiKey, model);
+    const llm = createLlm(apiKey, model, baseUrl);
     const response = await llm.invoke([
       new HumanMessage('请只回复 OK，不要输出其他内容，不要使用思考标签。'),
     ]);
@@ -115,9 +120,10 @@ export async function* streamChat(
   message: string,
   history: ChatMessage[],
   apiKey: string,
-  model: string
+  model: string,
+  baseUrl: string
 ): AsyncGenerator<string> {
-  const llm = createLlm(apiKey, model);
+  const llm = createLlm(apiKey, model, baseUrl);
   const messages = buildMessages(message, history);
   let accumulated = '';
   let visiblePrev = '';

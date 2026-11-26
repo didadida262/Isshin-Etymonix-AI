@@ -7,10 +7,16 @@ import {
   type ReactNode,
 } from 'react';
 import { DEFAULT_MODEL } from '../lib/llmConstants';
+import {
+  DEFAULT_LLM_API_KEY,
+  DEFAULT_LLM_BASE_URL,
+  normalizeLlmBaseUrl,
+} from '../lib/llmEndpoints';
 
 const STORAGE_KEY = 'llm-settings';
 
 export interface LlmSettings {
+  baseUrl: string;
   apiKey: string;
   model: string;
 }
@@ -22,13 +28,10 @@ interface LlmSettingsContextValue {
 }
 
 const defaultSettings: LlmSettings = {
-  apiKey: '',
+  baseUrl: DEFAULT_LLM_BASE_URL,
+  apiKey: DEFAULT_LLM_API_KEY,
   model: DEFAULT_MODEL,
 };
-
-function sanitizeApiKey(key: string): string {
-  return key.trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
-}
 
 function loadSettings(): LlmSettings {
   try {
@@ -36,7 +39,9 @@ function loadSettings(): LlmSettings {
     if (!raw) return defaultSettings;
     const parsed = JSON.parse(raw) as Partial<LlmSettings>;
     return {
-      apiKey: sanitizeApiKey(parsed.apiKey || defaultSettings.apiKey),
+      baseUrl: normalizeLlmBaseUrl(parsed.baseUrl || defaultSettings.baseUrl),
+      // 固定使用内置 Agnes Key，忽略本地缓存中的旧值
+      apiKey: DEFAULT_LLM_API_KEY,
       model: parsed.model?.trim() || DEFAULT_MODEL,
     };
   } catch {
@@ -51,8 +56,8 @@ export function LlmSettingsProvider({ children }: { children: ReactNode }) {
 
   const saveSettings = useCallback((next: LlmSettings) => {
     const sanitized = {
-      ...next,
-      apiKey: sanitizeApiKey(next.apiKey),
+      baseUrl: normalizeLlmBaseUrl(next.baseUrl),
+      apiKey: DEFAULT_LLM_API_KEY,
       model: next.model.trim(),
     };
     setSettings(sanitized);
@@ -61,7 +66,14 @@ export function LlmSettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = useCallback((patch: Partial<LlmSettings>) => {
     setSettings((prev) => {
-      const next = { ...prev, ...patch };
+      const next = {
+        ...prev,
+        ...patch,
+        ...(patch.baseUrl !== undefined
+          ? { baseUrl: normalizeLlmBaseUrl(patch.baseUrl) }
+          : {}),
+        apiKey: DEFAULT_LLM_API_KEY,
+      };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });

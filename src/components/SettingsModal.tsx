@@ -1,10 +1,14 @@
-import { faEye, faEyeSlash, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLlmSettings, type LlmSettings } from '../context/LlmSettingsContext';
-import { LLM_BASE_URL } from '../lib/llmEndpoints';
+import {
+  DEFAULT_LLM_API_KEY,
+  DEFAULT_LLM_BASE_URL,
+  normalizeLlmBaseUrl,
+} from '../lib/llmEndpoints';
 import { DEFAULT_MODEL } from '../lib/llmConstants';
 import { testLlmConnection } from '../lib/api';
 import { cn } from '../lib/cn';
@@ -22,6 +26,15 @@ function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const { getAccessToken } = useAuth();
   const { settings, saveSettings } = useLlmSettings();
@@ -29,14 +42,12 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState('');
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setDraft(settings);
+      setDraft({ ...settings, apiKey: DEFAULT_LLM_API_KEY });
       setError('');
       setTestResult(null);
-      setShowApiKey(false);
     }
   }, [open, settings]);
 
@@ -71,6 +82,15 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   }, [open]);
 
   const handleTest = useCallback(async () => {
+    const baseUrl = normalizeLlmBaseUrl(draft.baseUrl);
+    if (!baseUrl) {
+      setTestResult({ ok: false, message: '请先填写 BaseUrl' });
+      return;
+    }
+    if (!isValidHttpUrl(baseUrl)) {
+      setTestResult({ ok: false, message: 'BaseUrl 需为有效的 http(s) 地址' });
+      return;
+    }
     if (!draft.apiKey.trim()) {
       setTestResult({ ok: false, message: '请先填写 API Key' });
       return;
@@ -90,6 +110,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       }
       const reply = await testLlmConnection(
         {
+          baseUrl,
           apiKey: draft.apiKey.trim(),
           model: draft.model.trim(),
         },
@@ -108,9 +129,18 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     } finally {
       setTesting(false);
     }
-  }, [draft.apiKey, draft.model, getAccessToken]);
+  }, [draft.baseUrl, draft.apiKey, draft.model, getAccessToken]);
 
   const handleSave = () => {
+    const baseUrl = normalizeLlmBaseUrl(draft.baseUrl);
+    if (!baseUrl) {
+      setError('BaseUrl 不能为空');
+      return;
+    }
+    if (!isValidHttpUrl(baseUrl)) {
+      setError('BaseUrl 需为有效的 http(s) 地址');
+      return;
+    }
     if (!draft.apiKey.trim()) {
       setError('API Key 不能为空');
       return;
@@ -120,7 +150,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
       return;
     }
     saveSettings({
-      apiKey: draft.apiKey.trim(),
+      baseUrl,
+      apiKey: DEFAULT_LLM_API_KEY,
       model: draft.model.trim(),
     });
     onClose();
@@ -151,57 +182,29 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             <section className="mb-5">
               <SectionTitle>基础配置</SectionTitle>
               <div className="space-y-3">
-                <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] leading-relaxed text-zinc-500">
-                  获取自己的 API Key，请访问：
-                  <a
-                    href="https://aiplatform.njsrd.com/nexus/?invite_code=6UFELQ"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-0.5 block break-all text-cyan-400/90 hover:text-cyan-300 hover:underline"
-                  >
-                    https://aiplatform.njsrd.com/nexus/?invite_code=6UFELQ
-                  </a>
-                </p>
-
                 <label className="block">
                   <span className="mb-1 block text-xs text-zinc-400">BaseUrl</span>
                   <input
-                    type="text"
-                    readOnly
-                    value={LLM_BASE_URL}
-                    className="w-full cursor-default rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-400 outline-none"
+                    type="url"
+                    value={draft.baseUrl}
+                    onChange={(e) => {
+                      setDraft((d) => ({ ...d, baseUrl: e.target.value }));
+                      setTestResult(null);
+                    }}
+                    placeholder={DEFAULT_LLM_BASE_URL}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/40"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="mb-1 flex items-center gap-2 text-xs text-zinc-400">
-                    API Key
-                    <span className="rounded-full bg-cyan-400/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-cyan-400">体验版</span>
-                  </span>
-                  <div className="relative">
-                    <input
-                      type={showApiKey ? 'text' : 'password'}
-                      value={draft.apiKey}
-                      onChange={(e) => {
-                        setDraft((d) => ({ ...d, apiKey: e.target.value }));
-                        setTestResult(null);
-                      }}
-                      placeholder="sk-..."
-                      className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-3 pr-10 text-sm text-white outline-none focus:border-cyan-500/40"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey((v) => !v)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-500 transition-colors hover:text-zinc-300"
-                      aria-label={showApiKey ? '隐藏 API Key' : '显示 API Key'}
-                      title={showApiKey ? '隐藏' : '显示'}
-                    >
-                      <FontAwesomeIcon
-                        icon={showApiKey ? faEyeSlash : faEye}
-                        className="h-4 w-4"
-                      />
-                    </button>
-                  </div>
+                  <span className="mb-1 block text-xs text-zinc-400">API Key</span>
+                  <input
+                    type="password"
+                    value={draft.apiKey}
+                    readOnly
+                    autoComplete="off"
+                    className="w-full cursor-default rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-400 outline-none"
+                  />
                 </label>
               </div>
             </section>
@@ -220,9 +223,6 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/40"
                 />
               </label>
-              <p className="mt-2 text-[11px] text-zinc-500">
-                填写要使用的模型名称，调用时将直接使用该值
-              </p>
             </section>
 
             {error && <p className="mb-3 text-xs text-red-400">{error}</p>}

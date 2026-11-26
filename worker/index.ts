@@ -6,7 +6,8 @@ import { parseJudgeResponse, runJudge, streamJudge } from './lib/judge';
 import {
   type ChatRequest,
   type JudgeRequest,
-  LLM_BASE_URL,
+  DEFAULT_LLM_BASE_URL,
+  normalizeLlmBaseUrl,
 } from './lib/types';
 import { validateChatFields } from './lib/validate';
 
@@ -19,11 +20,18 @@ const SSE_HEADERS = {
   'X-Accel-Buffering': 'no',
 };
 
-app.get('/health', (c) => c.json({ status: 'ok', llm_base_url: LLM_BASE_URL }));
+app.get('/health', (c) =>
+  c.json({ status: 'ok', default_llm_base_url: DEFAULT_LLM_BASE_URL })
+);
 
 app.post('/test', requireAuth, async (c) => {
-  const body = await c.req.json<{ api_key?: string; model?: string }>();
+  const body = await c.req.json<{
+    base_url?: string;
+    api_key?: string;
+    model?: string;
+  }>();
   const err = validateChatFields({
+    base_url: body.base_url ?? '',
     api_key: body.api_key ?? '',
     model: body.model ?? '',
     message: 'test',
@@ -31,7 +39,11 @@ app.post('/test', requireAuth, async (c) => {
   if (err) return c.json({ detail: err }, 400);
 
   try {
-    const reply = await runQuickTest(body.api_key!.trim(), body.model!.trim());
+    const reply = await runQuickTest(
+      body.api_key!.trim(),
+      body.model!.trim(),
+      normalizeLlmBaseUrl(body.base_url!)
+    );
     return c.json({ reply: reply || '' });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -42,6 +54,7 @@ app.post('/test', requireAuth, async (c) => {
 app.post('/judge', requireAuth, async (c) => {
   const req = await c.req.json<JudgeRequest>();
   const err = validateChatFields({
+    base_url: req.base_url,
     api_key: req.api_key,
     model: req.model,
     message: req.user_explanation,
@@ -56,7 +69,8 @@ app.post('/judge', requireAuth, async (c) => {
       req.root_meaning.trim(),
       req.user_explanation.trim(),
       req.api_key.trim(),
-      req.model.trim()
+      req.model.trim(),
+      normalizeLlmBaseUrl(req.base_url)
     );
     return c.json(result);
   } catch (e) {
@@ -68,6 +82,7 @@ app.post('/judge', requireAuth, async (c) => {
 app.post('/judge/stream', requireAuth, async (c) => {
   const req = await c.req.json<JudgeRequest>();
   const err = validateChatFields({
+    base_url: req.base_url,
     api_key: req.api_key,
     model: req.model,
     message: req.user_explanation,
@@ -102,7 +117,8 @@ app.post('/judge/stream', requireAuth, async (c) => {
           req.root_meaning.trim(),
           req.user_explanation.trim(),
           req.api_key.trim(),
-          req.model.trim()
+          req.model.trim(),
+          normalizeLlmBaseUrl(req.base_url)
         )) {
           if (delta) {
             accumulated += delta;
@@ -153,7 +169,8 @@ app.post('/chat/stream', requireAuth, async (c) => {
           req.message.trim(),
           req.history ?? [],
           req.api_key.trim(),
-          req.model.trim()
+          req.model.trim(),
+          normalizeLlmBaseUrl(req.base_url)
         )) {
           if (delta) send({ content: delta });
         }
@@ -181,7 +198,8 @@ app.post('/chat', requireAuth, async (c) => {
       req.message.trim(),
       req.history ?? [],
       req.api_key.trim(),
-      req.model.trim()
+      req.model.trim(),
+      normalizeLlmBaseUrl(req.base_url)
     );
     return c.json({ reply: reply || '' });
   } catch (e) {

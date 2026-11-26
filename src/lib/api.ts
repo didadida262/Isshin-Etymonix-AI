@@ -55,7 +55,7 @@ function parseSsePayload(line: string): {
   }
 }
 
-/** 对话：走本站 Agent（/api），由后端调用写死的 LLM 接口 */
+/** 对话：走本站 Agent（/api），由后端按用户配置的 BaseUrl 调用 LLM */
 export async function sendChatStream(
   message: string,
   history: ChatMessagePayload[],
@@ -72,6 +72,7 @@ export async function sendChatStream(
     body: JSON.stringify({
       message,
       history,
+      base_url: settings.baseUrl,
       api_key: settings.apiKey,
       model: settings.model,
     }),
@@ -128,6 +129,7 @@ export async function sendJudgeStream(
       root: payload.root,
       root_meaning: payload.rootMeaning,
       user_explanation: payload.userExplanation,
+      base_url: settings.baseUrl,
       api_key: settings.apiKey,
       model: settings.model,
     }),
@@ -188,6 +190,7 @@ export async function sendJudge(
       root: payload.root,
       root_meaning: payload.rootMeaning,
       user_explanation: payload.userExplanation,
+      base_url: settings.baseUrl,
       api_key: settings.apiKey,
       model: settings.model,
     }),
@@ -204,13 +207,14 @@ export async function sendJudge(
 
 /** 测试连通性：短 prompt，响应更快 */
 export async function testLlmConnection(
-  settings: Pick<LlmSettings, 'apiKey' | 'model'>,
+  settings: Pick<LlmSettings, 'baseUrl' | 'apiKey' | 'model'>,
   accessToken: string
 ): Promise<string> {
   const res = await fetch(`${API_BASE}/test`, {
     method: 'POST',
     headers: buildHeaders(accessToken),
     body: JSON.stringify({
+      base_url: settings.baseUrl,
       api_key: settings.apiKey,
       model: settings.model,
     }),
@@ -237,6 +241,7 @@ export async function sendChat(
     body: JSON.stringify({
       message,
       history,
+      base_url: settings.baseUrl,
       api_key: settings.apiKey,
       model: settings.model,
     }),
